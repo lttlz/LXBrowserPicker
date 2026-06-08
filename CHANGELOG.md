@@ -7,4 +7,6 @@
 - Added first-run Windows default app setup guide.
 - Added installer plan and Inno Setup script.
 - Fixed Settings window ownership when opened from the picker window.
+- Fixed user configuration writes under Program Files by saving settings to `%AppData%\LXBrowserPicker`.
+- Fixed overlapping controls in the Settings window.
 - Preserved browser icons, Once / Always, global default, per-app rules, Ask every time, manual browser paths, and candidate scanning.

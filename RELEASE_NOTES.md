@@ -14,6 +14,8 @@ LXBrowserPicker is a lightweight Windows browser picker. Install it, set `http` 
 - Built-in English and Simplified Chinese UI.
 - First-run guide for Windows default app setup.
 - Inno Setup installer with Windows browser-client registration.
+- User settings are saved under `%AppData%\LXBrowserPicker` instead of the install directory.
+- Fixed overlapping controls in the Settings window.
 
 ## Download
 
@@ -22,7 +24,7 @@ LXBrowserPicker is a lightweight Windows browser picker. Install it, set `http` 
 ## SHA256
 
 ```text
-C64C6D285F7861F0E5B72DE70DA728593B7EAC3F33DD093EE5920AC84F840898
+DB3602501B012B30E355EDD09CC34E80CF2FA0E69D9EE0D0EB5CAB4019202203
 ```
 
 ## Notes
