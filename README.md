@@ -32,9 +32,9 @@ If the source application cannot be detected because Windows launched the picker
 
 ## Configuration
 
-User configuration is stored next to the executable as `lx-browser-picker.config.json`.
+User configuration is stored at `%AppData%\LXBrowserPicker\lx-browser-picker.config.json`.
 
-The installer preserves this file during upgrades. `lx-browser-picker.config.example.json` is only a template.
+If the user configuration does not exist, LXBrowserPicker reads `lx-browser-picker.config.json` next to the executable as the installed default template. `lx-browser-picker.config.example.json` is only a template.
 
 ## Legacy BrowserPicker
 

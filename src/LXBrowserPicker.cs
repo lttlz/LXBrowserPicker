@@ -147,6 +147,7 @@ namespace LXBrowserPicker
                     case "GuideDone": return "\u6211\u5DF2\u5B8C\u6210";
                     case "GuideLater": return "\u7A0D\u540E\u63D0\u9192";
                     case "ExeFilter": return "\u7A0B\u5E8F (*.exe)|*.exe";
+                    case "SaveConfigFailed": return "\u65E0\u6CD5\u4FDD\u5B58\u8BBE\u7F6E\u5230\uFF1A\r\n{0}\r\n\r\n{1}";
                 }
             }
 
@@ -194,6 +195,7 @@ namespace LXBrowserPicker
                 case "GuideDone": return "I've finished";
                 case "GuideLater": return "Remind me later";
                 case "ExeFilter": return "Programs (*.exe)|*.exe";
+                case "SaveConfigFailed": return "Could not save settings to:\r\n{0}\r\n\r\n{1}";
             }
             return key;
         }
@@ -202,8 +204,11 @@ namespace LXBrowserPicker
     internal static class Program
     {
         private const string AppName = "LXBrowserPicker";
+        private const string ConfigFileName = "lx-browser-picker.config.json";
         private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
-        private static readonly string ConfigPath = Path.Combine(BaseDir, "lx-browser-picker.config.json");
+        private static readonly string InstallConfigPath = Path.Combine(BaseDir, ConfigFileName);
+        private static readonly string UserConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName);
+        private static readonly string UserConfigPath = Path.Combine(UserConfigDir, ConfigFileName);
 
         [STAThread]
         private static void Main(string[] args)
@@ -321,25 +326,31 @@ namespace LXBrowserPicker
 
         private static PickerConfig LoadConfig()
         {
+            if (File.Exists(UserConfigPath))
+            {
+                return LoadConfigFromPath(UserConfigPath);
+            }
+
+            if (File.Exists(InstallConfigPath))
+            {
+                return LoadConfigFromPath(InstallConfigPath);
+            }
+
+            return new PickerConfig();
+        }
+
+        private static PickerConfig LoadConfigFromPath(string path)
+        {
             try
             {
-                if (!File.Exists(ConfigPath))
-                {
-                    return new PickerConfig();
-                }
-
                 JavaScriptSerializer serializer = new JavaScriptSerializer();
-                PickerConfig config = serializer.Deserialize<PickerConfig>(File.ReadAllText(ConfigPath));
+                PickerConfig config = serializer.Deserialize<PickerConfig>(File.ReadAllText(path));
                 if (config == null)
                 {
                     return new PickerConfig();
                 }
 
-                if (config.manualBrowsers == null) config.manualBrowsers = new List<BrowserEntry>();
-                if (config.appRules == null) config.appRules = new List<AppRule>();
-                if (config.defaultBrowserPath == null) config.defaultBrowserPath = "";
-                if (string.IsNullOrWhiteSpace(config.language)) config.language = "auto";
-                return config;
+                return NormalizeConfig(config);
             }
             catch
             {
@@ -347,11 +358,44 @@ namespace LXBrowserPicker
             }
         }
 
-        private static void SaveConfig(PickerConfig config)
+        private static PickerConfig NormalizeConfig(PickerConfig config)
         {
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            string json = serializer.Serialize(config);
-            File.WriteAllText(ConfigPath, PrettyJson(json));
+            if (config.manualBrowsers == null) config.manualBrowsers = new List<BrowserEntry>();
+            if (config.appRules == null) config.appRules = new List<AppRule>();
+            if (config.defaultBrowserPath == null) config.defaultBrowserPath = "";
+            if (string.IsNullOrWhiteSpace(config.language)) config.language = "auto";
+            return config;
+        }
+
+        private static bool SaveConfig(PickerConfig config)
+        {
+            try
+            {
+                Directory.CreateDirectory(UserConfigDir);
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                string json = serializer.Serialize(config);
+                File.WriteAllText(UserConfigPath, PrettyJson(json));
+                return true;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                ShowSaveConfigError(ex);
+                return false;
+            }
+            catch (IOException ex)
+            {
+                ShowSaveConfigError(ex);
+                return false;
+            }
+        }
+
+        private static void ShowSaveConfigError(Exception ex)
+        {
+            MessageBox.Show(
+                string.Format(I18n.T("SaveConfigFailed"), UserConfigPath, ex.Message),
+                I18n.T("AppTitle"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
         }
 
         private static void SaveAlwaysRule(PickerConfig config, string parentProcess, BrowserInfo browser)
@@ -784,8 +828,10 @@ namespace LXBrowserPicker
             DialogResult result = owner == null ? form.ShowDialog() : form.ShowDialog(owner);
             if (result == DialogResult.OK)
             {
-                SaveConfig(form.Config);
-                I18n.Configure(form.Config.language);
+                if (SaveConfig(form.Config))
+                {
+                    I18n.Configure(form.Config.language);
+                }
             }
         }
 
@@ -1115,8 +1161,8 @@ namespace LXBrowserPicker
             Config = config;
             Text = I18n.T("SettingsTitle");
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(760, 500);
-            MinimumSize = new Size(760, 500);
+            ClientSize = new Size(800, 500);
+            MinimumSize = new Size(800, 500);
 
             browserList = new ListView();
             browserList.Location = new Point(18, 18);
@@ -1158,39 +1204,39 @@ namespace LXBrowserPicker
 
             Label rulesLabel = new Label();
             rulesLabel.Text = I18n.T("ApplicationRules");
-            rulesLabel.Location = new Point(482, 18);
+            rulesLabel.Location = new Point(510, 18);
             rulesLabel.Size = new Size(240, 22);
 
             ruleList = new ListBox();
-            ruleList.Location = new Point(482, 46);
-            ruleList.Size = new Size(260, 300);
+            ruleList.Location = new Point(510, 46);
+            ruleList.Size = new Size(272, 300);
 
             Button addRule = new Button();
             addRule.Text = I18n.T("AddRule");
-            addRule.Location = new Point(482, 358);
+            addRule.Location = new Point(510, 358);
             addRule.Size = new Size(84, 28);
             addRule.Click += delegate { AddRule(false); };
 
             Button askRule = new Button();
             askRule.Text = I18n.T("AskRule");
-            askRule.Location = new Point(576, 358);
+            askRule.Location = new Point(604, 358);
             askRule.Size = new Size(84, 28);
             askRule.Click += delegate { AddRule(true); };
 
             Button removeRule = new Button();
             removeRule.Text = I18n.T("Remove");
-            removeRule.Location = new Point(670, 358);
+            removeRule.Location = new Point(698, 358);
             removeRule.Size = new Size(72, 28);
             removeRule.Click += delegate { RemoveRule(); };
 
             Label languageLabel = new Label();
             languageLabel.Text = I18n.T("Language");
-            languageLabel.Location = new Point(482, 406);
+            languageLabel.Location = new Point(510, 406);
             languageLabel.Size = new Size(80, 22);
 
             languageCombo = new ComboBox();
             languageCombo.DropDownStyle = ComboBoxStyle.DropDownList;
-            languageCombo.Location = new Point(568, 402);
+            languageCombo.Location = new Point(596, 402);
             languageCombo.Size = new Size(174, 24);
             languageCombo.Items.Add(I18n.T("LangAuto"));
             languageCombo.Items.Add(I18n.T("LangEnglish"));
@@ -1203,14 +1249,14 @@ namespace LXBrowserPicker
 
             Button ok = new Button();
             ok.Text = I18n.T("Save");
-            ok.Location = new Point(586, 448);
+            ok.Location = new Point(606, 448);
             ok.Size = new Size(74, 28);
             ok.Click += delegate { Config.language = IndexToLanguage(languageCombo.SelectedIndex); };
             ok.DialogResult = DialogResult.OK;
 
             Button cancel = new Button();
             cancel.Text = I18n.T("Cancel");
-            cancel.Location = new Point(668, 448);
+            cancel.Location = new Point(688, 448);
             cancel.Size = new Size(74, 28);
             cancel.DialogResult = DialogResult.Cancel;
 

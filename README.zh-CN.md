@@ -32,9 +32,9 @@ Windows 不允许应用静默把自己设为默认浏览器，所以这一步必
 
 ## 配置
 
-用户配置保存在程序同目录的 `lx-browser-picker.config.json`。
+用户配置保存在 `%AppData%\LXBrowserPicker\lx-browser-picker.config.json`。
 
-覆盖安装会保留这个文件。`lx-browser-picker.config.example.json` 只是模板。
+如果用户配置不存在，LXBrowserPicker 会读取程序同目录的 `lx-browser-picker.config.json` 作为安装默认模板。`lx-browser-picker.config.example.json` 只是模板。
 
 ## 旧版 BrowserPicker
 
