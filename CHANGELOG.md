@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- Added a dedicated LXBrowserPicker application icon.
+- Embedded the icon into the EXE and installer.
+
 ## 0.5.1
 
 - Fixed user configuration writes under Program Files by saving settings to `%AppData%\LXBrowserPicker`.

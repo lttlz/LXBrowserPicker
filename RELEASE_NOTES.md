@@ -1,11 +1,13 @@
-# LXBrowserPicker 0.5.1
+# LXBrowserPicker 0.5.2
 
 LXBrowserPicker is a lightweight Windows browser picker. Install it, set `http` and `https` to `LXBrowserPicker` in Windows Default Apps, then choose which installed browser opens each link.
 
-## Fixes
+## Included
 
-- User settings are saved under `%AppData%\LXBrowserPicker` instead of the install directory.
-- Fixed overlapping controls in the Settings window.
+- Dedicated LXBrowserPicker application icon.
+- Icon embedded into `LXBrowserPicker.exe`.
+- Icon applied to `LXBrowserPickerSetup.exe`.
+- Shortcut and Windows Default Apps icon paths continue to use the embedded EXE icon.
 
 ## Download
 
@@ -14,7 +16,7 @@ LXBrowserPicker is a lightweight Windows browser picker. Install it, set `http` 
 ## SHA256
 
 ```text
-773163E721F813C8C54229EFFB1FF994624665EA6113D52B414EA164DCCFA5ED
+E8E4BD0547C92BF0DF42C2B98318277B937C26D6D2352ED6330F7686D301C966
 ```
 
 ## Notes

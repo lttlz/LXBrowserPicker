@@ -1,5 +1,5 @@
 #define MyAppName "LXBrowserPicker"
-#define MyAppVersion "0.5.1"
+#define MyAppVersion "0.5.2"
 #define MyAppPublisher "LX"
 #define MyAppExeName "LXBrowserPicker.exe"
 
@@ -16,6 +16,7 @@ OutputBaseFilename=LXBrowserPickerSetup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\assets\LXBrowserPicker.ico
 PrivilegesRequired=admin
 ChangesAssociations=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
