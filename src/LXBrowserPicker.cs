@@ -6,9 +6,17 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Management;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
+
+[assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
+[assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
+[assembly: System.Reflection.AssemblyCompany("lttlz")]
+[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
 
 namespace LXBrowserPicker
 {
@@ -114,11 +122,11 @@ namespace LXBrowserPicker
                     case "Always": return "\u59CB\u7EC8";
                     case "Cancel": return "\u53D6\u6D88";
                     case "Save": return "\u4FDD\u5B58";
-                    case "Clear": return "\u6E05\u9664";
+                    case "Clear": return "\u6E05\u9664\u9ED8\u8BA4";
                     case "Browser": return "\u6D4F\u89C8\u5668";
                     case "Path": return "\u8DEF\u5F84";
                     case "AddBrowser": return "\u6DFB\u52A0\u6D4F\u89C8\u5668";
-                    case "RemoveManual": return "\u79FB\u9664\u624B\u52A8\u9879";
+                    case "RemoveManual": return "\u79FB\u9664\u624B\u52A8\u6DFB\u52A0";
                     case "Scan": return "\u626B\u63CF";
                     case "SetDefault": return "\u8BBE\u4E3A\u9ED8\u8BA4";
                     case "ApplicationRules": return "\u5E94\u7528\u89C4\u5219";
@@ -128,6 +136,18 @@ namespace LXBrowserPicker
                     case "AskEveryTime": return "\u6BCF\u6B21\u8BE2\u95EE";
                     case "DefaultSuffix": return "\uFF08\u9ED8\u8BA4\uFF09";
                     case "Language": return "\u8BED\u8A00";
+                    case "About": return "\u5173\u4E8E";
+                    case "AboutTitle": return "LXBrowserPicker / LX\u6D4F\u89C8\u5668\u9009\u62E9\u5668";
+                    case "AboutVersion": return "\u7248\u672C " + Program.AppVersionText;
+                    case "AboutDescription": return "\u4E00\u4E2A\u7528\u4E8E Windows \u7684\u591A\u6D4F\u89C8\u5668\u9009\u62E9\u5668\u3002\u5B83\u53EF\u4EE5\u4F5C\u4E3A\u9ED8\u8BA4\u6D4F\u89C8\u5668\u5019\u9009\u63A5\u7BA1\u7CFB\u7EDF\u53D1\u5F80\u9ED8\u8BA4\u6D4F\u89C8\u5668\u7684\u6253\u5F00\u8BF7\u6C42\uFF0C\u8BA9\u4F60\u5728\u6253\u5F00\u7F51\u9875\u94FE\u63A5\u3001HTML \u6587\u4EF6\u6216\u5176\u4ED6\u6D4F\u89C8\u5668\u5524\u8D77\u573A\u666F\u65F6\u9009\u62E9\u5177\u4F53\u6D4F\u89C8\u5668\uFF0C\u5E76\u6309\u6765\u6E90\u4FDD\u5B58\u89C4\u5219\u3002";
+                    case "AboutAuthor": return "\u4F5C\u8005\uFF1Alttlz";
+                    case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
+                    case "AboutFree": return "\u672C\u8F6F\u4EF6\u5B8C\u5168\u514D\u8D39\u5F00\u653E\u5168\u90E8\u529F\u80FD\uFF0C\u65E0\u4ED8\u8D39\u9650\u5236\u3001\u65E0\u5F3A\u5236\u6253\u8D4F\u3002";
+                    case "AboutSupportNote": return "\u82E5\u60A8\u89C9\u5F97\u5DE5\u5177\u5B9E\u7528\uFF0C\u53EF\u81EA\u613F\u5C0F\u989D\u8D5E\u8D4F\u652F\u6301\u540E\u7EED\u7EF4\u62A4\u66F4\u65B0\uFF0C\u652F\u6301\u4E0E\u5426\u4E0D\u5F71\u54CD\u4EFB\u4F55\u4F7F\u7528\u6743\u9650\u3002";
+                    case "WechatContact": return "\u6DFB\u52A0\u5FAE\u4FE1\uFF1A\u53CD\u9988\u95EE\u9898 / \u4EA4\u6D41\u5EFA\u8BAE";
+                    case "WechatSupport": return "\u81EA\u613F\u8D5E\u8D4F\uFF1A\u652F\u6301\u540E\u7EED\u7EF4\u62A4\u66F4\u65B0";
+                    case "AutoBrowserCannotRemove": return "\u8FD9\u662F\u81EA\u52A8\u626B\u63CF\u5230\u7684\u6D4F\u89C8\u5668\uFF0C\u4E0D\u80FD\u7528\u201C\u79FB\u9664\u624B\u52A8\u6DFB\u52A0\u201D\u5220\u9664\u3002";
+                    case "LaunchBrowserFailed": return "\u65E0\u6CD5\u542F\u52A8\u6240\u9009\u6D4F\u89C8\u5668\u3002\r\n\r\n\u6D4F\u89C8\u5668\uFF1A{0}\r\n\u94FE\u63A5\uFF1A{1}\r\n\u9519\u8BEF\uFF1A{2}\r\n\r\n\u5DF2\u5199\u5165\u8BCA\u65AD\u65E5\u5FD7\uFF1A\r\n{3}";
                     case "LangAuto": return "\u81EA\u52A8";
                     case "LangEnglish": return "English";
                     case "LangChinese": return "\u7B80\u4F53\u4E2D\u6587";
@@ -162,11 +182,11 @@ namespace LXBrowserPicker
                 case "Always": return "Always";
                 case "Cancel": return "Cancel";
                 case "Save": return "Save";
-                case "Clear": return "Clear";
+                case "Clear": return "Clear Default";
                 case "Browser": return "Browser";
                 case "Path": return "Path";
                 case "AddBrowser": return "Add Browser";
-                case "RemoveManual": return "Remove Manual";
+                case "RemoveManual": return "Remove Manual Entry";
                 case "Scan": return "Scan";
                 case "SetDefault": return "Set Default";
                 case "ApplicationRules": return "Application rules";
@@ -176,6 +196,18 @@ namespace LXBrowserPicker
                 case "AskEveryTime": return "Ask every time";
                 case "DefaultSuffix": return " (default)";
                 case "Language": return "Language";
+                case "About": return "About";
+                case "AboutTitle": return "LXBrowserPicker";
+                case "AboutVersion": return "Version " + Program.AppVersionText;
+                case "AboutDescription": return "A multi-browser picker for Windows. It can act as the default browser handler for requests sent to the system default browser, letting you choose which browser opens links, HTML files, and other browser-launch scenarios, with optional per-source rules.";
+                case "AboutAuthor": return "Author: lttlz";
+                case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
+                case "AboutFree": return "LXBrowserPicker is completely free and all features are available without paid limits or required donations.";
+                case "AboutSupportNote": return "If you find it useful, you may optionally make a small appreciation donation to support maintenance updates. Supporting it or not does not affect any usage rights.";
+                case "WechatContact": return "WeChat: feedback / suggestions";
+                case "WechatSupport": return "Voluntary appreciation: support maintenance updates";
+                case "AutoBrowserCannotRemove": return "This browser was found automatically and cannot be removed with Remove Manual Entry.";
+                case "LaunchBrowserFailed": return "Could not launch the selected browser.\r\n\r\nBrowser: {0}\r\nLink: {1}\r\nError: {2}\r\n\r\nDiagnostic log written to:\r\n{3}";
                 case "LangAuto": return "Auto";
                 case "LangEnglish": return "English";
                 case "LangChinese": return "Simplified Chinese";
@@ -203,16 +235,34 @@ namespace LXBrowserPicker
 
     internal static class Program
     {
+        [DllImport("kernel32.dll")]
+        private static extern bool AttachConsole(int dwProcessId);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern uint ExtractIconEx(string file, int index, IntPtr[] largeIcons, IntPtr[] smallIcons, uint icons);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyIcon(IntPtr handle);
+
+        private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
+        private const string AppUserModelId = "lttlz.LXBrowserPicker";
+        private const string AppVersion = "1.0.0";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string InstallConfigPath = Path.Combine(BaseDir, ConfigFileName);
         private static readonly string UserConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName);
         private static readonly string UserConfigPath = Path.Combine(UserConfigDir, ConfigFileName);
+        private static readonly string LaunchLogPath = Path.Combine(UserConfigDir, "launch.log");
+        internal static string AppVersionText { get { return AppVersion; } }
 
         [STAThread]
         private static void Main(string[] args)
         {
+            SetAppUserModelId();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -221,6 +271,7 @@ namespace LXBrowserPicker
 
             if (args.Length > 0 && string.Equals(args[0], "--list", StringComparison.OrdinalIgnoreCase))
             {
+                AttachConsoleForOutput();
                 foreach (BrowserInfo browser in FindBrowsers(config))
                 {
                     Console.WriteLine(browser.Name + "\t" + browser.Path);
@@ -230,6 +281,7 @@ namespace LXBrowserPicker
 
             if (args.Length > 0 && string.Equals(args[0], "--candidates", StringComparison.OrdinalIgnoreCase))
             {
+                AttachConsoleForOutput();
                 foreach (BrowserInfo browser in FindCandidateBrowsers(FindBrowsers(config)))
                 {
                     Console.WriteLine(browser.Name + "\t" + browser.Path);
@@ -292,7 +344,7 @@ namespace LXBrowserPicker
             RuleMatch ruleMatch = FindRuleMatch(config, available, parentProcess);
             if (ruleMatch.Matched && ruleMatch.Browser != null)
             {
-                OpenBrowser(ruleMatch.Browser, url);
+                OpenBrowser(ruleMatch.Browser, url, parentProcess);
                 return;
             }
 
@@ -301,7 +353,7 @@ namespace LXBrowserPicker
                 BrowserInfo defaultBrowser = FindByPath(available, config.defaultBrowserPath);
                 if (defaultBrowser != null)
                 {
-                    OpenBrowser(defaultBrowser, url);
+                    OpenBrowser(defaultBrowser, url, parentProcess);
                     return;
                 }
             }
@@ -320,8 +372,27 @@ namespace LXBrowserPicker
                 {
                     SaveAlwaysRule(config, parentProcess, pick.Browser);
                 }
-                OpenBrowser(pick.Browser, url);
+                OpenBrowser(pick.Browser, url, parentProcess);
             }
+        }
+
+        private static void SetAppUserModelId()
+        {
+            try
+            {
+                SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void AttachConsoleForOutput()
+        {
+            AttachConsole(AttachParentProcess);
+            StreamWriter writer = new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8);
+            writer.AutoFlush = true;
+            Console.SetOut(writer);
         }
 
         private static PickerConfig LoadConfig()
@@ -808,13 +879,124 @@ namespace LXBrowserPicker
             config.manualBrowsers.Add(new BrowserEntry { name = CleanName(name), path = Path.GetFullPath(path) });
         }
 
-        private static void OpenBrowser(BrowserInfo browser, string url)
+        private static void OpenBrowser(BrowserInfo browser, string url, string sourceProcess)
         {
-            ProcessStartInfo info = new ProcessStartInfo();
-            info.FileName = browser.Path;
-            info.Arguments = "\"" + url.Replace("\"", "\\\"") + "\"";
-            info.UseShellExecute = false;
-            Process.Start(info);
+            Exception shellError = TryStartBrowser(browser, url, true);
+            if (shellError == null) return;
+
+            Exception directError = TryStartBrowser(browser, url, false);
+            if (directError == null) return;
+
+            LogLaunchFailure(browser, url, sourceProcess, shellError, directError);
+            ShowLaunchFailure(browser, url, shellError, directError);
+        }
+
+        private static Exception TryStartBrowser(BrowserInfo browser, string url, bool useShellExecute)
+        {
+            try
+            {
+                ProcessStartInfo info = new ProcessStartInfo();
+                info.FileName = browser.Path;
+                info.Arguments = QuoteArgument(url);
+                info.UseShellExecute = useShellExecute;
+
+                string workingDirectory = Path.GetDirectoryName(browser.Path);
+                if (!string.IsNullOrWhiteSpace(workingDirectory) && Directory.Exists(workingDirectory))
+                {
+                    info.WorkingDirectory = workingDirectory;
+                }
+
+                Process process = Process.Start(info);
+                if (process == null) return new InvalidOperationException("Process.Start returned null.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return ex;
+            }
+        }
+
+        private static string QuoteArgument(string value)
+        {
+            if (value == null) return "\"\"";
+
+            StringBuilder builder = new StringBuilder();
+            builder.Append('"');
+            int backslashes = 0;
+            foreach (char ch in value)
+            {
+                if (ch == '\\')
+                {
+                    backslashes++;
+                }
+                else if (ch == '"')
+                {
+                    builder.Append('\\', backslashes * 2 + 1);
+                    builder.Append('"');
+                    backslashes = 0;
+                }
+                else
+                {
+                    if (backslashes > 0)
+                    {
+                        builder.Append('\\', backslashes);
+                        backslashes = 0;
+                    }
+                    builder.Append(ch);
+                }
+            }
+            if (backslashes > 0)
+            {
+                builder.Append('\\', backslashes * 2);
+            }
+            builder.Append('"');
+            return builder.ToString();
+        }
+
+        private static void ShowLaunchFailure(BrowserInfo browser, string url, Exception shellError, Exception directError)
+        {
+            MessageBox.Show(
+                string.Format(
+                    I18n.T("LaunchBrowserFailed"),
+                    browser.Name + " - " + browser.Path,
+                    url,
+                    BuildLaunchErrorSummary(shellError, directError),
+                    LaunchLogPath),
+                I18n.T("AppTitle"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+
+        private static string BuildLaunchErrorSummary(Exception shellError, Exception directError)
+        {
+            return "ShellExecute: " + DescribeException(shellError) + "; Direct: " + DescribeException(directError);
+        }
+
+        private static string DescribeException(Exception ex)
+        {
+            if (ex == null) return "";
+            return ex.GetType().Name + ": " + ex.Message;
+        }
+
+        private static void LogLaunchFailure(BrowserInfo browser, string url, string sourceProcess, Exception shellError, Exception directError)
+        {
+            try
+            {
+                Directory.CreateDirectory(UserConfigDir);
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine("[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + "]");
+                builder.AppendLine("Source: " + sourceProcess);
+                builder.AppendLine("BrowserName: " + browser.Name);
+                builder.AppendLine("BrowserPath: " + browser.Path);
+                builder.AppendLine("Url: " + url);
+                builder.AppendLine("ShellExecuteError: " + DescribeException(shellError));
+                builder.AppendLine("DirectError: " + DescribeException(directError));
+                builder.AppendLine();
+                File.AppendAllText(LaunchLogPath, builder.ToString(), Encoding.UTF8);
+            }
+            catch
+            {
+            }
         }
 
         private static void ShowSettings(PickerConfig config)
@@ -865,6 +1047,69 @@ namespace LXBrowserPicker
             return ExtractIcon(path, size).ToBitmap();
         }
 
+        internal static Icon GetAppIcon()
+        {
+            Icon icon = ExtractAppIcon(0);
+            if (icon != null) return icon;
+
+            try
+            {
+                icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+                if (icon != null) return new Icon(icon, 32, 32);
+            }
+            catch
+            {
+            }
+            return SystemIcons.Application;
+        }
+
+        private static Icon ExtractAppIcon(int index)
+        {
+            IntPtr[] largeIcons = new IntPtr[1];
+            try
+            {
+                if (ExtractIconEx(Application.ExecutablePath, index, largeIcons, null, 1) > 0 && largeIcons[0] != IntPtr.Zero)
+                {
+                    Icon icon = (Icon)Icon.FromHandle(largeIcons[0]).Clone();
+                    return new Icon(icon, 32, 32);
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (largeIcons[0] != IntPtr.Zero)
+                {
+                    DestroyIcon(largeIcons[0]);
+                }
+            }
+            return null;
+        }
+
+        internal static Image LoadAboutImage(string fileName, int size)
+        {
+            string imagePath = Path.Combine(BaseDir, "assets", "about", fileName);
+            if (!File.Exists(imagePath))
+            {
+                imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+            }
+            if (!File.Exists(imagePath)) return null;
+
+            using (Image original = Image.FromFile(imagePath))
+            {
+                Bitmap bitmap = new Bitmap(size, size);
+                using (Graphics graphics = Graphics.FromImage(bitmap))
+                {
+                    graphics.Clear(Color.White);
+                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    graphics.DrawImage(original, 0, 0, size, size);
+                }
+                return bitmap;
+            }
+        }
+
         internal static List<BrowserInfo> PublicFindBrowsers(PickerConfig config)
         {
             return FindBrowsers(config);
@@ -886,6 +1131,7 @@ namespace LXBrowserPicker
         public GuideForm()
         {
             Text = I18n.T("GuideTitle");
+            Icon = Program.GetAppIcon();
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -947,6 +1193,7 @@ namespace LXBrowserPicker
         private PickerForm(List<BrowserInfo> browsers, string url, string parentProcess, Action<Form> settingsAction)
         {
             Text = I18n.T("AppTitle");
+            Icon = Program.GetAppIcon();
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -1100,6 +1347,7 @@ namespace LXBrowserPicker
             this.candidates = candidates;
             SelectedBrowsers = new List<BrowserInfo>();
             Text = I18n.T("CandidateTitle");
+            Icon = Program.GetAppIcon();
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(620, 360);
 
@@ -1160,9 +1408,19 @@ namespace LXBrowserPicker
         {
             Config = config;
             Text = I18n.T("SettingsTitle");
+            Icon = Program.GetAppIcon();
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(800, 500);
-            MinimumSize = new Size(800, 500);
+            ClientSize = new Size(800, 540);
+            MinimumSize = new Size(800, 540);
+
+            TabControl tabs = new TabControl();
+            tabs.Location = new Point(10, 10);
+            tabs.Size = new Size(780, 470);
+
+            TabPage settingsTab = new TabPage(I18n.T("Settings"));
+            TabPage aboutTab = new TabPage(I18n.T("About"));
+            tabs.TabPages.Add(settingsTab);
+            tabs.TabPages.Add(aboutTab);
 
             browserList = new ListView();
             browserList.Location = new Point(18, 18);
@@ -1249,30 +1507,32 @@ namespace LXBrowserPicker
 
             Button ok = new Button();
             ok.Text = I18n.T("Save");
-            ok.Location = new Point(606, 448);
+            ok.Location = new Point(606, 498);
             ok.Size = new Size(74, 28);
             ok.Click += delegate { Config.language = IndexToLanguage(languageCombo.SelectedIndex); };
             ok.DialogResult = DialogResult.OK;
 
             Button cancel = new Button();
             cancel.Text = I18n.T("Cancel");
-            cancel.Location = new Point(688, 448);
+            cancel.Location = new Point(688, 498);
             cancel.Size = new Size(74, 28);
             cancel.DialogResult = DialogResult.Cancel;
 
-            Controls.Add(browserList);
-            Controls.Add(addBrowser);
-            Controls.Add(removeBrowser);
-            Controls.Add(scan);
-            Controls.Add(setDefault);
-            Controls.Add(clearDefault);
-            Controls.Add(rulesLabel);
-            Controls.Add(ruleList);
-            Controls.Add(addRule);
-            Controls.Add(askRule);
-            Controls.Add(removeRule);
-            Controls.Add(languageLabel);
-            Controls.Add(languageCombo);
+            settingsTab.Controls.Add(browserList);
+            settingsTab.Controls.Add(addBrowser);
+            settingsTab.Controls.Add(removeBrowser);
+            settingsTab.Controls.Add(scan);
+            settingsTab.Controls.Add(setDefault);
+            settingsTab.Controls.Add(clearDefault);
+            settingsTab.Controls.Add(rulesLabel);
+            settingsTab.Controls.Add(ruleList);
+            settingsTab.Controls.Add(addRule);
+            settingsTab.Controls.Add(askRule);
+            settingsTab.Controls.Add(removeRule);
+            settingsTab.Controls.Add(languageLabel);
+            settingsTab.Controls.Add(languageCombo);
+            aboutTab.Controls.Add(CreateAboutGroup());
+            Controls.Add(tabs);
             Controls.Add(ok);
             Controls.Add(cancel);
 
@@ -1280,6 +1540,124 @@ namespace LXBrowserPicker
             CancelButton = cancel;
             RefreshBrowsers();
             RefreshRules();
+        }
+
+        private GroupBox CreateAboutGroup()
+        {
+            GroupBox group = new GroupBox();
+            group.Text = I18n.T("About");
+            group.Location = new Point(14, 14);
+            group.Size = new Size(738, 405);
+
+            Label title = new Label();
+            title.Text = I18n.T("AboutTitle") + Environment.NewLine + I18n.T("AboutVersion");
+            title.Font = new Font(Font, FontStyle.Bold);
+            title.Location = new Point(14, 24);
+            title.Size = new Size(430, 42);
+
+            RichTextBox description = CreateInfoText(I18n.T("AboutDescription"), new Point(14, 68), new Size(430, 92));
+
+            LinkLabel github = new LinkLabel();
+            github.Text = I18n.T("AboutGithub");
+            github.Location = new Point(14, 168);
+            github.Size = new Size(430, 20);
+            github.LinkClicked += delegate { Process.Start("https://github.com/lttlz/LXBrowserPicker"); };
+
+            Label author = new Label();
+            author.Text = I18n.T("AboutAuthor");
+            author.Location = new Point(14, 194);
+            author.Size = new Size(430, 18);
+
+            AddQrBlock(group, "wechat-contact.png", I18n.T("WechatContact"), 470);
+            AddQrBlock(group, "wechat-support.png", I18n.T("WechatSupport"), 600);
+
+            RichTextBox supportNote = CreateInfoText(I18n.T("AboutFree") + " " + I18n.T("AboutSupportNote"), new Point(14, 242), new Size(430, 76));
+
+            group.Controls.Add(title);
+            group.Controls.Add(description);
+            group.Controls.Add(github);
+            group.Controls.Add(author);
+            group.Controls.Add(supportNote);
+            return group;
+        }
+
+        private RichTextBox CreateInfoText(string text, Point location, Size size)
+        {
+            RichTextBox box = new RichTextBox();
+            box.Location = location;
+            box.Size = size;
+            box.BorderStyle = BorderStyle.None;
+            box.BackColor = SystemColors.Control;
+            box.ReadOnly = true;
+            box.TabStop = false;
+            box.ScrollBars = RichTextBoxScrollBars.None;
+            box.DetectUrls = false;
+            box.ShortcutsEnabled = false;
+            box.Rtf = BuildInfoRtf(text);
+            return box;
+        }
+
+        private string BuildInfoRtf(string text)
+        {
+            return "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Microsoft YaHei UI;}}\\uc1\\pard\\f0\\fs18\\sl300\\slmult1 " + EscapeRtf(text) + "\\par}";
+        }
+
+        private string EscapeRtf(string text)
+        {
+            StringBuilder builder = new StringBuilder();
+            foreach (char ch in text)
+            {
+                if (ch == '\\')
+                {
+                    builder.Append("\\\\");
+                }
+                else if (ch == '{')
+                {
+                    builder.Append("\\{");
+                }
+                else if (ch == '}')
+                {
+                    builder.Append("\\}");
+                }
+                else if (ch == '\r')
+                {
+                }
+                else if (ch == '\n')
+                {
+                    builder.Append("\\par ");
+                }
+                else if (ch <= 0x7f)
+                {
+                    builder.Append(ch);
+                }
+                else
+                {
+                    short value = unchecked((short)ch);
+                    builder.Append("\\u");
+                    builder.Append(value);
+                    builder.Append("?");
+                }
+            }
+            return builder.ToString();
+        }
+
+        private void AddQrBlock(Control parent, string fileName, string labelText, int x)
+        {
+            PictureBox picture = new PictureBox();
+            picture.Location = new Point(x, 24);
+            picture.Size = new Size(112, 112);
+            picture.BorderStyle = BorderStyle.FixedSingle;
+            picture.SizeMode = PictureBoxSizeMode.StretchImage;
+            picture.Image = Program.LoadAboutImage(fileName, 112);
+
+            Label label = new Label();
+            label.Text = labelText;
+            label.Location = new Point(x - 4, 142);
+            label.Size = new Size(124, 24);
+            label.TextAlign = ContentAlignment.MiddleCenter;
+
+            parent.Controls.Add(picture);
+            parent.Controls.Add(label);
         }
 
         private void RefreshBrowsers()
@@ -1324,6 +1702,11 @@ namespace LXBrowserPicker
         {
             BrowserInfo selected = SelectedBrowser();
             if (selected == null) return;
+            if (!selected.Manual)
+            {
+                MessageBox.Show(I18n.T("AutoBrowserCannotRemove"), Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             for (int i = Config.manualBrowsers.Count - 1; i >= 0; i--)
             {
                 if (string.Equals(Config.manualBrowsers[i].path, selected.Path, StringComparison.OrdinalIgnoreCase))
@@ -1440,6 +1823,7 @@ namespace LXBrowserPicker
         private PromptForm(string title, string prompt)
         {
             Text = title;
+            Icon = Program.GetAppIcon();
             StartPosition = FormStartPosition.CenterParent;
             ClientSize = new Size(420, 130);
             Label label = new Label();

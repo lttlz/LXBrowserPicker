@@ -1,18 +1,22 @@
 #define MyAppName "LXBrowserPicker"
-#define MyAppVersion "0.5.2"
-#define MyAppPublisher "LX"
+#define MyAppVersion "1.0.0"
+#define MyAppPublisher "lttlz"
 #define MyAppExeName "LXBrowserPicker.exe"
+#define MyAppURL "https://github.com/lttlz/LXBrowserPicker"
 
 [Setup]
 AppId={{7D3F6F53-1BAE-4BA3-A27C-98A7CF4E5D6D}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..
-OutputBaseFilename=LXBrowserPickerSetup
+OutputBaseFilename=LXBrowserPickerSetup-v1.0.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -21,6 +25,10 @@ PrivilegesRequired=admin
 ChangesAssociations=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
 CloseApplications=yes
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} Setup
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
@@ -35,6 +43,8 @@ Source: "..\lx-browser-picker.config.example.json"; DestDir: "{app}"; Flags: ign
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.zh-CN.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\about\wechat-contact.png"; DestDir: "{app}\assets\about"; Flags: ignoreversion
+Source: "..\assets\about\wechat-support.png"; DestDir: "{app}\assets\about"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

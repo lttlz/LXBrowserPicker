@@ -1,25 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="LXBrowserPicker icon">
-  <defs>
-    <linearGradient id="bg" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#2068d8"/>
-      <stop offset="0.55" stop-color="#1746a2"/>
-      <stop offset="1" stop-color="#15213f"/>
-    </linearGradient>
-    <linearGradient id="route" x1="72" y1="140" x2="202" y2="76" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#66e0ff"/>
-      <stop offset="1" stop-color="#48f0a6"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#07101f" flood-opacity="0.35"/>
-    </filter>
-  </defs>
-  <rect x="18" y="18" width="220" height="220" rx="48" fill="url(#bg)"/>
-  <circle cx="188" cy="72" r="28" fill="#ffffff" opacity="0.96" filter="url(#shadow)"/>
-  <circle cx="192" cy="160" r="28" fill="#ffffff" opacity="0.96" filter="url(#shadow)"/>
-  <path d="M72 140h46c28 0 38-20 56-50" fill="none" stroke="url(#route)" stroke-width="18" stroke-linecap="round"/>
-  <path d="M118 140c28 0 38 20 56 28" fill="none" stroke="url(#route)" stroke-width="18" stroke-linecap="round"/>
-  <path d="M174 72l22 1-13 18" fill="none" stroke="#48f0a6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M174 160l21 9-18 13" fill="none" stroke="#48f0a6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M58 67v82h42" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M116 68l50 80M164 68l-50 80" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <image href="LXBrowserPicker.master.png" x="0" y="0" width="256" height="256" preserveAspectRatio="xMidYMid meet"/>
 </svg>
