@@ -1,6 +1,6 @@
 # LXBrowserPicker
 
-LXBrowserPicker is a lightweight Windows browser picker. Set it as the default app for `http` and `https`, then choose which installed browser opens each link.
+LXBrowserPicker is a multi-browser picker for Windows. It can act as the default browser handler for requests sent to the system default browser, letting you choose which browser opens links, HTML files, and other browser-launch scenarios, with optional per-source rules.
 
 ## Features
 
@@ -13,6 +13,7 @@ LXBrowserPicker is a lightweight Windows browser picker. Set it as the default a
 - Candidate browser scan
 - Built-in English and Simplified Chinese UI
 - First-run guide for Windows default app setup
+- About tab with project information and optional support details
 
 ## Install
 
@@ -39,3 +40,7 @@ If the user configuration does not exist, LXBrowserPicker reads `lx-browser-pick
 ## Legacy BrowserPicker
 
 LXBrowserPicker does not automatically remove old `CodexBrowserPicker` registry entries. If you no longer need the old version, uninstall or clean it separately.
+
+## Support
+
+LXBrowserPicker is free to use. Optional support information is available in the About tab. Support is voluntary and does not unlock paid features, limits, subscriptions, or priority service.

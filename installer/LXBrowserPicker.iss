@@ -43,8 +43,12 @@ Source: "..\lx-browser-picker.config.example.json"; DestDir: "{app}"; Flags: ign
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.zh-CN.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+#ifexist "..\assets\about\wechat-contact.png"
 Source: "..\assets\about\wechat-contact.png"; DestDir: "{app}\assets\about"; Flags: ignoreversion
+#endif
+#ifexist "..\assets\about\wechat-support.png"
 Source: "..\assets\about\wechat-support.png"; DestDir: "{app}\assets\about"; Flags: ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
