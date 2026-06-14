@@ -3,6 +3,11 @@
   "firstRunScanDone": false,
   "defaultAppGuideCompleted": false,
   "language": "auto",
+  "selectionHotkeyEnabled": false,
+  "selectionHotkey": "Ctrl+Alt+X",
+  "selectionRecognizeBareDomains": true,
+  "selectionTrayAutoStart": false,
+  "selectionKeepTrayOnSettingsClose": true,
   "manualBrowsers": [],
   "appRules": []
 }

@@ -1,5 +1,5 @@
 #define MyAppName "LXBrowserPicker"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "lttlz"
 #define MyAppExeName "LXBrowserPicker.exe"
 #define MyAppURL "https://github.com/lttlz/LXBrowserPicker"
@@ -16,7 +16,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..
-OutputBaseFilename=LXBrowserPickerSetup-v1.0.0
+OutputBaseFilename=LXBrowserPickerSetup-v1.1.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -102,10 +102,29 @@ begin
     '  "firstRunScanDone": false,'#13#10 +
     '  "defaultAppGuideCompleted": false,'#13#10 +
     '  "language": "' + InitialAppLanguage() + '",'#13#10 +
+    '  "selectionHotkeyEnabled": false,'#13#10 +
+    '  "selectionHotkey": "Ctrl+Alt+X",'#13#10 +
+    '  "selectionRecognizeBareDomains": true,'#13#10 +
+    '  "selectionTrayAutoStart": false,'#13#10 +
+    '  "selectionKeepTrayOnSettingsClose": true,'#13#10 +
     '  "manualBrowsers": [],'#13#10 +
     '  "appRules": []'#13#10 +
     '}'#13#10;
   SaveStringToFile(ConfigPath, ConfigText, False);
+end;
+
+procedure CloseRunningLXBrowserPicker();
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM "{#MyAppExeName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(500);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  CloseRunningLXBrowserPicker();
+  Result := '';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

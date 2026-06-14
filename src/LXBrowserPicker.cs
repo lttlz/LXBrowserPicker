@@ -9,14 +9,17 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web.Script.Serialization;
+using System.Windows.Automation;
+using System.Windows.Automation.Text;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
 
 namespace LXBrowserPicker
 {
@@ -38,6 +41,11 @@ namespace LXBrowserPicker
         public bool firstRunScanDone { get; set; }
         public bool defaultAppGuideCompleted { get; set; }
         public string language { get; set; }
+        public bool selectionHotkeyEnabled { get; set; }
+        public string selectionHotkey { get; set; }
+        public bool selectionRecognizeBareDomains { get; set; }
+        public bool selectionTrayAutoStart { get; set; }
+        public bool selectionKeepTrayOnSettingsClose { get; set; }
         public List<BrowserEntry> manualBrowsers { get; set; }
         public List<AppRule> appRules { get; set; }
 
@@ -47,6 +55,11 @@ namespace LXBrowserPicker
             firstRunScanDone = false;
             defaultAppGuideCompleted = false;
             language = "auto";
+            selectionHotkeyEnabled = false;
+            selectionHotkey = "Ctrl+Alt+X";
+            selectionRecognizeBareDomains = true;
+            selectionTrayAutoStart = false;
+            selectionKeepTrayOnSettingsClose = true;
             manualBrowsers = new List<BrowserEntry>();
             appRules = new List<AppRule>();
         }
@@ -122,6 +135,7 @@ namespace LXBrowserPicker
                     case "Always": return "\u59CB\u7EC8";
                     case "Cancel": return "\u53D6\u6D88";
                     case "Save": return "\u4FDD\u5B58";
+                    case "Apply": return "\u5E94\u7528";
                     case "Clear": return "\u6E05\u9664\u9ED8\u8BA4";
                     case "Browser": return "\u6D4F\u89C8\u5668";
                     case "Path": return "\u8DEF\u5F84";
@@ -136,6 +150,38 @@ namespace LXBrowserPicker
                     case "AskEveryTime": return "\u6BCF\u6B21\u8BE2\u95EE";
                     case "DefaultSuffix": return "\uFF08\u9ED8\u8BA4\uFF09";
                     case "Language": return "\u8BED\u8A00";
+                    case "SelectionOpenLinks": return "\u9009\u8BCD\u6253\u5F00\u94FE\u63A5";
+                    case "SelectionOpenLinksHeading": return "\u9009\u8BCD\u6253\u5F00\u94FE\u63A5";
+                    case "SelectionOpenLinksSubtitle": return "\u9009\u4E2D\u4EFB\u610F\u5E94\u7528\u4E2D\u7684\u6587\u5B57\uFF0C\u6309\u5FEB\u6377\u952E\u540E\u667A\u80FD\u8BC6\u522B\u5176\u4E2D\u94FE\u63A5\u5E76\u6253\u5F00\u3002";
+                    case "GlobalHotkey": return "\u5168\u5C40\u5FEB\u6377\u952E";
+                    case "EnableSelectionHotkey": return "\u542F\u7528\u5168\u5C40\u9009\u8BCD\u5FEB\u6377\u952E";
+                    case "Hotkey": return "\u5FEB\u6377\u952E\uFF1A";
+                    case "RecordHotkey": return "\u5F55\u5236\u5FEB\u6377\u952E";
+                    case "HotkeyStatus": return "\u72B6\u6001\uFF1A{0}";
+                    case "HotkeyStatusEnabled": return "\u4FDD\u5B58\u540E\u7531\u6258\u76D8\u5E38\u9A7B\u76D1\u542C";
+                    case "HotkeyStatusDisabled": return "\u672A\u542F\u7528";
+                    case "LinkRecognition": return "\u94FE\u63A5\u8BC6\u522B";
+                    case "RecognizeStandardLinks": return "\u8BC6\u522B http/https/www \u94FE\u63A5";
+                    case "RecognizeBareDomains": return "\u8BC6\u522B\u5E38\u89C1\u88F8\u57DF\u540D";
+                    case "BareDomainExample": return "\u4F8B\u5982 example.com/path\u3001example.cn";
+                    case "SelectionExtraTextHint": return "\u9009\u8BCD\u5141\u8BB8\u6709\u591A\u4F59\u5185\u5BB9\uFF0C\u4F1A\u667A\u80FD\u8BC6\u522B\u5176\u4E2D\u7B2C\u4E00\u4E2A\u94FE\u63A5\u3002";
+                    case "NoSearchHint": return "\u975E\u94FE\u63A5\u5185\u5BB9\u4E0D\u4F1A\u641C\u7D22\u3002";
+                    case "BackgroundRun": return "\u540E\u53F0\u8FD0\u884C";
+                    case "TrayAutoStart": return "\u5F00\u673A\u542F\u52A8\u6258\u76D8\u76D1\u542C";
+                    case "KeepTrayOnSettingsClose": return "\u5173\u95ED\u8BBE\u7F6E\u7A97\u53E3\u540E\u4FDD\u7559\u6258\u76D8\u56FE\u6807";
+                    case "TrayRequiredHint": return "\u9700\u8981\u6258\u76D8\u5B58\u5728\uFF0C\u9009\u8BCD\u5FEB\u6377\u952E\u624D\u80FD\u6B63\u5E38\u5DE5\u4F5C\u3002";
+                    case "TrayOnlySelectionHint": return "\u9000\u51FA\u6258\u76D8\u53EA\u4F1A\u5173\u95ED\u9009\u8BCD\u5FEB\u6377\u952E\uFF0C\u4E0D\u5F71\u54CD\u9ED8\u8BA4\u6D4F\u89C8\u5668\u9009\u62E9\u5668\u3002";
+                    case "PrivacyNotice": return "\u9690\u79C1\u8BF4\u660E";
+                    case "ClipboardPrivacyText": return "\u6309\u4E0B\u5FEB\u6377\u952E\u65F6\u4F1A\u4E34\u65F6\u590D\u5236\u9009\u4E2D\u6587\u672C\u5E76\u8BFB\u53D6\u526A\u8D34\u677F\uFF0C\u968F\u540E\u5C1D\u8BD5\u6062\u590D\u539F\u526A\u8D34\u677F\u3002";
+                    case "HotkeyCaptureTitle": return "\u5F55\u5236\u5FEB\u6377\u952E";
+                    case "HotkeyCapturePrompt": return "\u6309\u4E0B\u8981\u4F7F\u7528\u7684\u7EC4\u5408\u952E\u3002Esc \u53D6\u6D88\u3002";
+                    case "SelectionNoUrl": return "\u9009\u4E2D\u6587\u672C\u4E2D\u6CA1\u6709\u627E\u5230\u53EF\u6253\u5F00\u7684\u94FE\u63A5\u3002";
+                    case "SelectionCopyFailed": return "\u65E0\u6CD5\u83B7\u53D6\u5F53\u524D\u9009\u4E2D\u6587\u672C\u3002\u5F53\u524D\u5E94\u7528\u53EF\u80FD\u7981\u6B62\u590D\u5236\uFF0C\u6216\u526A\u8D34\u677F\u6B63\u88AB\u5360\u7528\u3002";
+                    case "HotkeyRegisterFailed": return "\u65E0\u6CD5\u6CE8\u518C\u5168\u5C40\u5FEB\u6377\u952E\uFF1A{0}\u3002\u5B83\u53EF\u80FD\u5DF2\u88AB\u5176\u4ED6\u7A0B\u5E8F\u5360\u7528\u3002";
+                    case "TrayMenuSettings": return "\u8BBE\u7F6E";
+                    case "TrayMenuPause": return "\u6682\u505C\u5FEB\u6377\u952E";
+                    case "TrayMenuResume": return "\u542F\u7528\u5FEB\u6377\u952E";
+                    case "TrayMenuExit": return "\u9000\u51FA";
                     case "About": return "\u5173\u4E8E";
                     case "AboutTitle": return "LXBrowserPicker / LX\u6D4F\u89C8\u5668\u9009\u62E9\u5668";
                     case "AboutVersion": return "\u7248\u672C " + Program.AppVersionText;
@@ -161,6 +207,8 @@ namespace LXBrowserPicker
                     case "AppProcessTitle": return "\u5E94\u7528\u8FDB\u7A0B";
                     case "AppProcessPrompt": return "\u8F93\u5165\u8FDB\u7A0B\u540D\uFF0C\u4F8B\u5982\uFF1ACodex \u6216 Codex.exe";
                     case "OK": return "\u786E\u5B9A";
+                    case "UnsavedSettingsTitle": return "\u672A\u5E94\u7528\u7684\u66F4\u6539";
+                    case "UnsavedSettingsPrompt": return "\u8BBE\u7F6E\u6709\u672A\u5E94\u7528\u7684\u66F4\u6539\u3002\u662F\u5426\u5E94\u7528\u540E\u5173\u95ED\uFF1F";
                     case "GuideTitle": return "\u5B8C\u6210 Windows \u9ED8\u8BA4\u5E94\u7528\u8BBE\u7F6E";
                     case "GuideText": return "\u8981\u8BA9 LX\u6D4F\u89C8\u5668\u9009\u62E9\u5668\u63A5\u7BA1\u94FE\u63A5\uFF0C\u8BF7\u5728 Windows \u9ED8\u8BA4\u5E94\u7528\u4E2D\u628A http \u548C https \u8BBE\u4E3A LXBrowserPicker\u3002";
                     case "OpenDefaultApps": return "\u6253\u5F00\u9ED8\u8BA4\u5E94\u7528\u8BBE\u7F6E";
@@ -182,6 +230,7 @@ namespace LXBrowserPicker
                 case "Always": return "Always";
                 case "Cancel": return "Cancel";
                 case "Save": return "Save";
+                case "Apply": return "Apply";
                 case "Clear": return "Clear Default";
                 case "Browser": return "Browser";
                 case "Path": return "Path";
@@ -196,6 +245,38 @@ namespace LXBrowserPicker
                 case "AskEveryTime": return "Ask every time";
                 case "DefaultSuffix": return " (default)";
                 case "Language": return "Language";
+                case "SelectionOpenLinks": return "Selected Text Links";
+                case "SelectionOpenLinksHeading": return "Selected text opens links";
+                case "SelectionOpenLinksSubtitle": return "Select text in any app, press the hotkey, and LXBrowserPicker opens the first detected link.";
+                case "GlobalHotkey": return "Global hotkey";
+                case "EnableSelectionHotkey": return "Enable global selected-text hotkey";
+                case "Hotkey": return "Hotkey:";
+                case "RecordHotkey": return "Record Hotkey";
+                case "HotkeyStatus": return "Status: {0}";
+                case "HotkeyStatusEnabled": return "tray listener after saving";
+                case "HotkeyStatusDisabled": return "disabled";
+                case "LinkRecognition": return "Link recognition";
+                case "RecognizeStandardLinks": return "Recognize http/https/www links";
+                case "RecognizeBareDomains": return "Recognize common bare domains";
+                case "BareDomainExample": return "For example: example.com/path, example.cn";
+                case "SelectionExtraTextHint": return "Selected text may contain extra content; the first link is detected automatically.";
+                case "NoSearchHint": return "Non-link text is not searched.";
+                case "BackgroundRun": return "Background running";
+                case "TrayAutoStart": return "Start tray listener when Windows starts";
+                case "KeepTrayOnSettingsClose": return "Keep tray icon after closing Settings";
+                case "TrayRequiredHint": return "The tray listener must be running for the selected-text hotkey to work.";
+                case "TrayOnlySelectionHint": return "Exiting the tray only disables the selected-text hotkey. Default browser picking is unaffected.";
+                case "PrivacyNotice": return "Privacy notice";
+                case "ClipboardPrivacyText": return "When the hotkey is pressed, LXBrowserPicker temporarily copies selected text, reads the clipboard, then tries to restore the original clipboard.";
+                case "HotkeyCaptureTitle": return "Record hotkey";
+                case "HotkeyCapturePrompt": return "Press the key combination to use. Press Esc to cancel.";
+                case "SelectionNoUrl": return "No openable link was found in the selected text.";
+                case "SelectionCopyFailed": return "Could not get the selected text. The current app may block copying, or the clipboard may be busy.";
+                case "HotkeyRegisterFailed": return "Could not register global hotkey: {0}. It may already be used by another app.";
+                case "TrayMenuSettings": return "Settings";
+                case "TrayMenuPause": return "Pause Hotkey";
+                case "TrayMenuResume": return "Enable Hotkey";
+                case "TrayMenuExit": return "Exit";
                 case "About": return "About";
                 case "AboutTitle": return "LXBrowserPicker";
                 case "AboutVersion": return "Version " + Program.AppVersionText;
@@ -221,6 +302,8 @@ namespace LXBrowserPicker
                 case "AppProcessTitle": return "Application process";
                 case "AppProcessPrompt": return "Enter process name, for example: Codex or Codex.exe";
                 case "OK": return "OK";
+                case "UnsavedSettingsTitle": return "Unapplied changes";
+                case "UnsavedSettingsPrompt": return "Settings contain unapplied changes. Apply them before closing?";
                 case "GuideTitle": return "Finish Windows default app setup";
                 case "GuideText": return "To let LXBrowserPicker handle links, set http and https to LXBrowserPicker in Windows default apps.";
                 case "OpenDefaultApps": return "Open Default Apps";
@@ -247,17 +330,103 @@ namespace LXBrowserPicker
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool DestroyIcon(IntPtr handle);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetClipboardSequenceNumber();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.0.0";
+        private const string AppVersion = "1.1.0";
         private const string ConfigFileName = "lx-browser-picker.config.json";
+        private const string TrayRunValueName = "LXBrowserPickerTray";
+        private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
+        private const int SelectionHotkeyId = 0x4c58;
+        private const int WmHotkey = 0x0312;
+        private const uint ModAlt = 0x0001;
+        private const uint ModControl = 0x0002;
+        private const uint ModShift = 0x0004;
+        private const uint ModWin = 0x0008;
+        private const uint InputKeyboard = 1;
+        private const uint KeyEventKeyUp = 0x0002;
+        private const ushort VirtualKeyControl = 0x11;
+        private const ushort VirtualKeyShift = 0x10;
+        private const ushort VirtualKeyAlt = 0x12;
+        private const ushort VirtualKeyLWin = 0x5B;
+        private const ushort VirtualKeyRWin = 0x5C;
+        private const ushort VirtualKeyEscape = 0x1B;
+        private const ushort VirtualKeyC = 0x43;
         private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string InstallConfigPath = Path.Combine(BaseDir, ConfigFileName);
         private static readonly string UserConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName);
         private static readonly string UserConfigPath = Path.Combine(UserConfigDir, ConfigFileName);
         private static readonly string LaunchLogPath = Path.Combine(UserConfigDir, "launch.log");
+        private static readonly string SelectionLogPath = Path.Combine(UserConfigDir, "selection.log");
         internal static string AppVersionText { get { return AppVersion; } }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Input
+        {
+            public uint type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MouseInput mi;
+            [FieldOffset(0)]
+            public KeyboardInput ki;
+            [FieldOffset(0)]
+            public HardwareInput hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MouseInput
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KeyboardInput
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct HardwareInput
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
 
         [STAThread]
         private static void Main(string[] args)
@@ -292,6 +461,12 @@ namespace LXBrowserPicker
             if (args.Length > 0 && string.Equals(args[0], "--settings", StringComparison.OrdinalIgnoreCase))
             {
                 ShowSettings(config);
+                return;
+            }
+
+            if (args.Length > 0 && string.Equals(args[0], "--tray", StringComparison.OrdinalIgnoreCase))
+            {
+                RunTray(config);
                 return;
             }
 
@@ -332,6 +507,11 @@ namespace LXBrowserPicker
                 return;
             }
 
+            HandleUrl(config, url, GetParentProcessName());
+        }
+
+        private static void HandleUrl(PickerConfig config, string url, string parentProcess)
+        {
             List<BrowserInfo> available = FindBrowsers(config);
             if (available.Count == 0)
             {
@@ -340,7 +520,6 @@ namespace LXBrowserPicker
                 return;
             }
 
-            string parentProcess = GetParentProcessName();
             RuleMatch ruleMatch = FindRuleMatch(config, available, parentProcess);
             if (ruleMatch.Matched && ruleMatch.Browser != null)
             {
@@ -435,6 +614,7 @@ namespace LXBrowserPicker
             if (config.appRules == null) config.appRules = new List<AppRule>();
             if (config.defaultBrowserPath == null) config.defaultBrowserPath = "";
             if (string.IsNullOrWhiteSpace(config.language)) config.language = "auto";
+            if (string.IsNullOrWhiteSpace(config.selectionHotkey)) config.selectionHotkey = "Ctrl+Alt+X";
             return config;
         }
 
@@ -999,21 +1179,753 @@ namespace LXBrowserPicker
             }
         }
 
-        private static void ShowSettings(PickerConfig config)
+        internal static void ShowSettings(PickerConfig config)
         {
             ShowSettings(config, null);
         }
 
-        private static void ShowSettings(PickerConfig config, IWin32Window owner)
+        internal static void ShowSettings(PickerConfig config, IWin32Window owner)
         {
             SettingsForm form = new SettingsForm(config);
-            DialogResult result = owner == null ? form.ShowDialog() : form.ShowDialog(owner);
-            if (result == DialogResult.OK)
+            if (owner == null)
             {
-                if (SaveConfig(form.Config))
+                form.ShowDialog();
+            }
+            else
+            {
+                form.ShowDialog(owner);
+            }
+        }
+
+        internal static bool ApplySettingsConfig(PickerConfig config)
+        {
+            if (!SaveConfig(config)) return false;
+
+            I18n.Configure(config.language);
+            ApplySelectionTrayAutoStart(config);
+            if (config.selectionHotkeyEnabled && config.selectionKeepTrayOnSettingsClose)
+            {
+                EnsureSelectionTrayRunning();
+            }
+
+            return true;
+        }
+
+        internal static void ApplySelectionTrayAutoStart(PickerConfig config)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
                 {
-                    I18n.Configure(form.Config.language);
+                    if (key == null) return;
+                    if (config.selectionHotkeyEnabled && config.selectionTrayAutoStart)
+                    {
+                        key.SetValue(TrayRunValueName, QuoteArgument(Application.ExecutablePath) + " --tray");
+                    }
+                    else
+                    {
+                        key.DeleteValue(TrayRunValueName, false);
+                    }
                 }
+            }
+            catch
+            {
+            }
+        }
+
+        private static void EnsureSelectionTrayRunning()
+        {
+            try
+            {
+                ProcessStartInfo info = new ProcessStartInfo();
+                info.FileName = Application.ExecutablePath;
+                info.Arguments = "--tray";
+                info.UseShellExecute = true;
+                Process.Start(info);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void RunTray(PickerConfig config)
+        {
+            if (!config.selectionHotkeyEnabled) return;
+
+            bool createdNew = false;
+            using (Mutex mutex = new Mutex(true, TrayMutexName, out createdNew))
+            {
+                if (!createdNew) return;
+                Application.Run(new SelectionTrayContext(config));
+            }
+        }
+
+        private static void OpenSelectedTextUrl(PickerConfig config, NotifyIcon notifyIcon)
+        {
+            string sourceProcess = GetForegroundProcessName();
+            string selectedText;
+            if (!TryReadSelectedText(out selectedText))
+            {
+                ShowSelectionTip(notifyIcon, I18n.T("SelectionCopyFailed"));
+                return;
+            }
+
+            string url = ExtractFirstUrl(selectedText, config.selectionRecognizeBareDomains);
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                ShowSelectionTip(notifyIcon, I18n.T("SelectionNoUrl"));
+                return;
+            }
+
+            HandleUrl(config, url, sourceProcess);
+        }
+
+        private static void ShowSelectionTip(NotifyIcon notifyIcon, string message)
+        {
+            ShowForegroundMessage(message, MessageBoxIcon.Information);
+        }
+
+        private static void ShowForegroundMessage(string message, MessageBoxIcon icon)
+        {
+            try
+            {
+                using (Form owner = new Form())
+                {
+                    owner.StartPosition = FormStartPosition.Manual;
+                    owner.Location = new Point(-32000, -32000);
+                    owner.Size = new Size(1, 1);
+                    owner.ShowInTaskbar = false;
+                    owner.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+                    owner.Opacity = 0;
+                    owner.TopMost = true;
+                    owner.Show();
+                    owner.Activate();
+                    MessageBox.Show(owner, message, I18n.T("AppTitle"), MessageBoxButtons.OK, icon);
+                }
+            }
+            catch
+            {
+                MessageBox.Show(message, I18n.T("AppTitle"), MessageBoxButtons.OK, icon);
+            }
+        }
+
+        private static string GetForegroundProcessName()
+        {
+            try
+            {
+                IntPtr hwnd = GetForegroundWindow();
+                if (hwnd == IntPtr.Zero) return "";
+                uint processId;
+                GetWindowThreadProcessId(hwnd, out processId);
+                if (processId == 0) return "";
+                using (Process process = Process.GetProcessById((int)processId))
+                {
+                    return Path.GetFileNameWithoutExtension(process.ProcessName);
+                }
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private static bool TryReadSelectedText(out string text)
+        {
+            text = "";
+            if (TryReadSelectedTextFromAutomation(out text)) return true;
+            if (TryReadSelectedTextFromClipboard(out text, false)) return true;
+
+            SendSingleKey(VirtualKeyEscape);
+            Thread.Sleep(40);
+            return TryReadSelectedTextFromClipboard(out text, true);
+        }
+
+        private static bool TryReadSelectedTextFromAutomation(out string text)
+        {
+            text = "";
+            try
+            {
+                AutomationElement focused = AutomationElement.FocusedElement;
+                if (TryReadAutomationSelection(focused, out text)) return true;
+
+                IntPtr hwnd = GetForegroundWindow();
+                if (hwnd != IntPtr.Zero)
+                {
+                    AutomationElement foreground = AutomationElement.FromHandle(hwnd);
+                    if (TryReadAutomationSelection(foreground, out text)) return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogSelectionFailure("UI Automation selection failed. " + DescribeException(ex));
+            }
+            return false;
+        }
+
+        private static bool TryReadAutomationSelection(AutomationElement element, out string text)
+        {
+            text = "";
+            if (element == null) return false;
+
+            try
+            {
+                object patternObject;
+                if (!element.TryGetCurrentPattern(TextPattern.Pattern, out patternObject)) return false;
+                TextPattern textPattern = patternObject as TextPattern;
+                if (textPattern == null) return false;
+
+                TextPatternRange[] ranges = textPattern.GetSelection();
+                if (ranges == null || ranges.Length == 0) return false;
+
+                StringBuilder builder = new StringBuilder();
+                foreach (TextPatternRange range in ranges)
+                {
+                    if (range == null) continue;
+                    string item = range.GetText(-1);
+                    if (!string.IsNullOrWhiteSpace(item)) builder.Append(item);
+                }
+
+                text = builder.ToString();
+                return !string.IsNullOrWhiteSpace(text);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool TryReadSelectedTextFromClipboard(out string text, bool afterEscape)
+        {
+            text = "";
+            IDataObject original;
+            if (!TryCaptureClipboard(out original)) return false;
+            uint beforeSequence = GetClipboardSequenceNumber();
+
+            try
+            {
+                if (!SendCtrlC())
+                {
+                    LogSelectionFailure("SendInput Ctrl+C failed. LastWin32Error=" + Marshal.GetLastWin32Error());
+                    return false;
+                }
+
+                for (int i = 0; i < 8; i++)
+                {
+                    Thread.Sleep(50);
+                    uint currentSequence = GetClipboardSequenceNumber();
+                    if (currentSequence == beforeSequence && i < 3)
+                    {
+                        continue;
+                    }
+
+                    if (!TryGetClipboardText(out text)) continue;
+                    if (!string.IsNullOrWhiteSpace(text)) return true;
+                }
+                LogSelectionFailure("Clipboard stayed empty after Ctrl+C. AfterEscape=" + afterEscape + ", ForegroundProcess=" + GetForegroundProcessName());
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LogSelectionFailure("Clipboard read failed. " + DescribeException(ex));
+                return false;
+            }
+            finally
+            {
+                TryRestoreClipboard(original);
+            }
+        }
+
+        private static bool TryGetClipboardText(out string text)
+        {
+            text = "";
+            try
+            {
+                if (Clipboard.ContainsText(TextDataFormat.UnicodeText))
+                {
+                    text = Clipboard.GetText(TextDataFormat.UnicodeText);
+                }
+                else if (Clipboard.ContainsText())
+                {
+                    text = Clipboard.GetText();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogSelectionFailure("Clipboard text read attempt failed. " + DescribeException(ex));
+                return false;
+            }
+        }
+
+        private static void WaitForModifierKeysReleased(int timeoutMilliseconds)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            while (stopwatch.ElapsedMilliseconds < timeoutMilliseconds)
+            {
+                if (!IsVirtualKeyDown(VirtualKeyControl) &&
+                    !IsVirtualKeyDown(VirtualKeyShift) &&
+                    !IsVirtualKeyDown(VirtualKeyAlt) &&
+                    !IsVirtualKeyDown(VirtualKeyLWin) &&
+                    !IsVirtualKeyDown(VirtualKeyRWin))
+                {
+                    return;
+                }
+                Thread.Sleep(25);
+            }
+        }
+
+        private static bool IsVirtualKeyDown(ushort virtualKey)
+        {
+            return (GetAsyncKeyState(virtualKey) & unchecked((short)0x8000)) != 0;
+        }
+
+        private static bool AreModifierKeysReleased()
+        {
+            return !IsVirtualKeyDown(VirtualKeyControl) &&
+                   !IsVirtualKeyDown(VirtualKeyShift) &&
+                   !IsVirtualKeyDown(VirtualKeyAlt) &&
+                   !IsVirtualKeyDown(VirtualKeyLWin) &&
+                   !IsVirtualKeyDown(VirtualKeyRWin);
+        }
+
+        private static bool SendSingleKey(ushort virtualKey)
+        {
+            Input[] inputs = new Input[2];
+            inputs[0] = CreateKeyboardInput(virtualKey, 0);
+            inputs[1] = CreateKeyboardInput(virtualKey, KeyEventKeyUp);
+            uint sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(Input)));
+            if (sent != inputs.Length)
+            {
+                LogSelectionFailure("SendInput key " + virtualKey + " failed. Sent=" + sent + ", LastWin32Error=" + Marshal.GetLastWin32Error());
+            }
+            return sent == inputs.Length;
+        }
+
+        private static bool SendCtrlC()
+        {
+            Input[] inputs = new Input[4];
+            inputs[0] = CreateKeyboardInput(VirtualKeyControl, 0);
+            inputs[1] = CreateKeyboardInput(VirtualKeyC, 0);
+            inputs[2] = CreateKeyboardInput(VirtualKeyC, KeyEventKeyUp);
+            inputs[3] = CreateKeyboardInput(VirtualKeyControl, KeyEventKeyUp);
+            return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(Input))) == inputs.Length;
+        }
+
+        private static Input CreateKeyboardInput(ushort virtualKey, uint flags)
+        {
+            Input input = new Input();
+            input.type = InputKeyboard;
+            input.u.ki.wVk = virtualKey;
+            input.u.ki.wScan = 0;
+            input.u.ki.dwFlags = flags;
+            input.u.ki.time = 0;
+            input.u.ki.dwExtraInfo = IntPtr.Zero;
+            return input;
+        }
+
+        private static void LogSelectionFailure(string message)
+        {
+            try
+            {
+                Directory.CreateDirectory(UserConfigDir);
+                File.AppendAllText(
+                    SelectionLogPath,
+                    "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + "] " + message + Environment.NewLine,
+                    Encoding.UTF8);
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool TryCaptureClipboard(out IDataObject copy)
+        {
+            copy = new DataObject();
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                try
+                {
+                    IDataObject source = Clipboard.GetDataObject();
+                    if (source == null) return true;
+                    foreach (string format in source.GetFormats())
+                    {
+                        try
+                        {
+                            object data = source.GetData(format);
+                            if (data != null)
+                            {
+                                copy.SetData(format, data);
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    return true;
+                }
+                catch
+                {
+                    Thread.Sleep(30);
+                }
+            }
+
+            copy = null;
+            LogSelectionFailure("Clipboard capture failed before Ctrl+C.");
+            return false;
+        }
+
+        private static void TryRestoreClipboard(IDataObject data)
+        {
+            try
+            {
+                if (data == null)
+                {
+                    Clipboard.Clear();
+                }
+                else
+                {
+                    Clipboard.SetDataObject(data, true);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        internal static string ExtractFirstUrl(string text, bool recognizeBareDomains)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+
+            Match best = Match.Empty;
+            Regex standard = new Regex(@"(?i)\b(?:https?://|www\.)[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F\u3001\uFF09\u3011\u300B]+", RegexOptions.CultureInvariant);
+            Match standardMatch = standard.Match(text);
+            if (standardMatch.Success) best = standardMatch;
+
+            if (recognizeBareDomains)
+            {
+                string commonBareDomainTlds = @"com\.cn|net\.cn|org\.cn|gov\.cn|edu\.cn|com|cn|net|org|io|ai|app|dev|me|co|info|biz|top|xyz|cc|tv|vip|shop|store|site|online|tech|cloud|edu|gov";
+                Regex bare = new Regex(@"(?i)(?<![A-Za-z0-9_@.-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?\.)+(?:" + commonBareDomainTlds + @")(?![A-Za-z0-9_.-])(?:/[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:\?[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:#[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?", RegexOptions.CultureInvariant);
+                Match bareMatch = bare.Match(text);
+                if (bareMatch.Success && (!best.Success || bareMatch.Index < best.Index))
+                {
+                    best = bareMatch;
+                }
+            }
+
+            if (!best.Success) return "";
+            return NormalizeExtractedUrl(best.Value);
+        }
+
+        private static string NormalizeExtractedUrl(string value)
+        {
+            if (value == null) return "";
+            string url = value.Trim();
+            char[] trimChars = new char[] { '\u3002', '\uFF0C', ',', '.', '\uFF1B', ';', '\uFF1A', ':', '\uFF01', '!', '\uFF1F', '?', '\uFF09', ')', '\u3011', ']', '\u300B', '>', '\u3001', '"', '\'' };
+            url = url.Trim(trimChars);
+            url = TrimPastedUiSuffixes(url);
+            while (url.EndsWith(")") && url.IndexOf("(") < 0) url = url.Substring(0, url.Length - 1);
+            while (url.EndsWith("]") && url.IndexOf("[") < 0) url = url.Substring(0, url.Length - 1);
+
+            if (url.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            {
+                return "https://" + url;
+            }
+            if (!Regex.IsMatch(url, @"^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase))
+            {
+                return "https://" + url;
+            }
+            return url;
+        }
+
+        private static string TrimPastedUiSuffixes(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return "";
+
+            // Some apps copy hover labels immediately after the URL with no whitespace.
+            Match fileSuffix = Regex.Match(
+                url,
+                @"(?i)^(.*\.(?:pdf|docx?|xlsx?|pptx?|zip|rar|7z|exe|msi|dmg|jpg|jpeg|png|gif|webp|txt|csv|xml|json|html?))(?:[A-Za-z0-9-]+\.)+[A-Za-z][A-Za-z0-9-]*(?:/.*)?$",
+                RegexOptions.CultureInvariant);
+            if (fileSuffix.Success)
+            {
+                url = fileSuffix.Groups[1].Value;
+            }
+
+            Match uppercaseSuffix = Regex.Match(
+                url,
+                @"^(.*\/[^\/?#]*[a-z0-9])([A-Z][A-Z0-9]{3,})([?#].*)?$",
+                RegexOptions.CultureInvariant);
+            if (uppercaseSuffix.Success)
+            {
+                url = uppercaseSuffix.Groups[1].Value + uppercaseSuffix.Groups[3].Value;
+            }
+
+            return url;
+        }
+
+        internal static bool TryParseHotkey(string text, out uint modifiers, out Keys key)
+        {
+            modifiers = 0;
+            key = Keys.None;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            string[] parts = text.Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string rawPart in parts)
+            {
+                string part = rawPart.Trim();
+                if (part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) || part.Equals("Control", StringComparison.OrdinalIgnoreCase))
+                {
+                    modifiers |= ModControl;
+                }
+                else if (part.Equals("Alt", StringComparison.OrdinalIgnoreCase))
+                {
+                    modifiers |= ModAlt;
+                }
+                else if (part.Equals("Shift", StringComparison.OrdinalIgnoreCase))
+                {
+                    modifiers |= ModShift;
+                }
+                else if (part.Equals("Win", StringComparison.OrdinalIgnoreCase) || part.Equals("Windows", StringComparison.OrdinalIgnoreCase))
+                {
+                    modifiers |= ModWin;
+                }
+                else
+                {
+                    try
+                    {
+                        KeysConverter converter = new KeysConverter();
+                        object converted = converter.ConvertFromString(part);
+                        if (converted is Keys)
+                        {
+                            key = (Keys)converted;
+                        }
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return modifiers != 0 && key != Keys.None && !IsModifierKey(key);
+        }
+
+        private static bool IsModifierKey(Keys key)
+        {
+            return key == Keys.ControlKey || key == Keys.ShiftKey || key == Keys.Menu ||
+                   key == Keys.LControlKey || key == Keys.RControlKey ||
+                   key == Keys.LShiftKey || key == Keys.RShiftKey ||
+                   key == Keys.LMenu || key == Keys.RMenu ||
+                   key == Keys.LWin || key == Keys.RWin;
+        }
+
+        internal static string FormatHotkey(Keys modifiers, Keys key)
+        {
+            List<string> parts = new List<string>();
+            if ((modifiers & Keys.Control) == Keys.Control) parts.Add("Ctrl");
+            if ((modifiers & Keys.Alt) == Keys.Alt) parts.Add("Alt");
+            if ((modifiers & Keys.Shift) == Keys.Shift) parts.Add("Shift");
+            if ((modifiers & Keys.LWin) == Keys.LWin || (modifiers & Keys.RWin) == Keys.RWin) parts.Add("Win");
+            parts.Add(new KeysConverter().ConvertToString(key));
+            return string.Join("+", parts.ToArray());
+        }
+
+        private class SelectionTrayContext : ApplicationContext
+        {
+            private PickerConfig config;
+            private NotifyIcon notifyIcon;
+            private SelectionHotkeyWindow hotkeyWindow;
+            private ToolStripMenuItem pauseItem;
+            private bool paused;
+
+            public SelectionTrayContext(PickerConfig config)
+            {
+                this.config = config;
+                hotkeyWindow = new SelectionHotkeyWindow(delegate { OpenSelectedTextUrl(this.config, notifyIcon); });
+
+                notifyIcon = new NotifyIcon();
+                notifyIcon.Icon = GetAppIcon();
+                notifyIcon.Text = AppName;
+                notifyIcon.Visible = true;
+                notifyIcon.ContextMenuStrip = BuildMenu();
+                notifyIcon.DoubleClick += delegate { ShowSettingsFromTray(); };
+
+                RegisterConfiguredHotkey();
+            }
+
+            private ContextMenuStrip BuildMenu()
+            {
+                ContextMenuStrip menu = new ContextMenuStrip();
+                ToolStripMenuItem settings = new ToolStripMenuItem(I18n.T("TrayMenuSettings"));
+                settings.Click += delegate { ShowSettingsFromTray(); };
+                pauseItem = new ToolStripMenuItem();
+                pauseItem.Click += delegate { TogglePaused(); };
+                ToolStripMenuItem exit = new ToolStripMenuItem(I18n.T("TrayMenuExit"));
+                exit.Click += delegate { ExitThread(); };
+                menu.Items.Add(settings);
+                menu.Items.Add(pauseItem);
+                menu.Items.Add(new ToolStripSeparator());
+                menu.Items.Add(exit);
+                UpdatePauseMenu();
+                return menu;
+            }
+
+            private void ShowSettingsFromTray()
+            {
+                ShowSettings(config);
+                config = LoadConfig();
+                if (!config.selectionHotkeyEnabled || !config.selectionKeepTrayOnSettingsClose)
+                {
+                    ExitThread();
+                    return;
+                }
+                RegisterConfiguredHotkey();
+                UpdatePauseMenu();
+            }
+
+            private void TogglePaused()
+            {
+                paused = !paused;
+                if (paused)
+                {
+                    hotkeyWindow.Unregister();
+                }
+                else
+                {
+                    RegisterConfiguredHotkey();
+                }
+                UpdatePauseMenu();
+            }
+
+            private void UpdatePauseMenu()
+            {
+                if (pauseItem != null)
+                {
+                    pauseItem.Text = paused ? I18n.T("TrayMenuResume") : I18n.T("TrayMenuPause");
+                }
+            }
+
+            private void RegisterConfiguredHotkey()
+            {
+                hotkeyWindow.Unregister();
+                if (paused || !config.selectionHotkeyEnabled) return;
+
+                uint modifiers;
+                Keys key;
+                if (!TryParseHotkey(config.selectionHotkey, out modifiers, out key))
+                {
+                    config.selectionHotkey = "Ctrl+Alt+X";
+                    TryParseHotkey(config.selectionHotkey, out modifiers, out key);
+                }
+
+                if (!hotkeyWindow.Register(modifiers, key))
+                {
+                    notifyIcon.ShowBalloonTip(5000, AppName, string.Format(I18n.T("HotkeyRegisterFailed"), config.selectionHotkey), ToolTipIcon.Warning);
+                }
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    if (hotkeyWindow != null)
+                    {
+                        hotkeyWindow.Dispose();
+                        hotkeyWindow = null;
+                    }
+                    if (notifyIcon != null)
+                    {
+                        notifyIcon.Visible = false;
+                        notifyIcon.Dispose();
+                        notifyIcon = null;
+                    }
+                }
+                base.Dispose(disposing);
+            }
+        }
+
+        private class SelectionHotkeyWindow : NativeWindow, IDisposable
+        {
+            private readonly Action onHotkey;
+            private System.Windows.Forms.Timer pendingHotkeyTimer;
+            private Stopwatch pendingHotkeyStopwatch;
+            private bool registered;
+
+            public SelectionHotkeyWindow(Action onHotkey)
+            {
+                this.onHotkey = onHotkey;
+                CreateHandle(new CreateParams());
+            }
+
+            public bool Register(uint modifiers, Keys key)
+            {
+                Unregister();
+                registered = RegisterHotKey(Handle, SelectionHotkeyId, modifiers, (uint)key);
+                return registered;
+            }
+
+            public void Unregister()
+            {
+                if (registered)
+                {
+                    UnregisterHotKey(Handle, SelectionHotkeyId);
+                    registered = false;
+                }
+            }
+
+            protected override void WndProc(ref Message m)
+            {
+                if (m.Msg == WmHotkey)
+                {
+                    ScheduleHotkeyAction();
+                    return;
+                }
+                base.WndProc(ref m);
+            }
+
+            private void ScheduleHotkeyAction()
+            {
+                if (pendingHotkeyTimer != null)
+                {
+                    pendingHotkeyTimer.Stop();
+                    pendingHotkeyTimer.Dispose();
+                    pendingHotkeyTimer = null;
+                }
+
+                pendingHotkeyStopwatch = Stopwatch.StartNew();
+                pendingHotkeyTimer = new System.Windows.Forms.Timer();
+                pendingHotkeyTimer.Interval = 25;
+                pendingHotkeyTimer.Tick += delegate
+                {
+                    if (!AreModifierKeysReleased() && pendingHotkeyStopwatch != null && pendingHotkeyStopwatch.ElapsedMilliseconds < 700)
+                    {
+                        return;
+                    }
+
+                    System.Windows.Forms.Timer timer = pendingHotkeyTimer;
+                    pendingHotkeyTimer = null;
+                    pendingHotkeyStopwatch = null;
+                    if (timer != null)
+                    {
+                        timer.Stop();
+                        timer.Dispose();
+                    }
+                    if (onHotkey != null) onHotkey();
+                };
+                pendingHotkeyTimer.Start();
+            }
+
+            public void Dispose()
+            {
+                if (pendingHotkeyTimer != null)
+                {
+                    pendingHotkeyTimer.Stop();
+                    pendingHotkeyTimer.Dispose();
+                    pendingHotkeyTimer = null;
+                }
+                pendingHotkeyStopwatch = null;
+                Unregister();
+                DestroyHandle();
             }
         }
 
@@ -1402,6 +2314,16 @@ namespace LXBrowserPicker
         private ListView browserList;
         private ListBox ruleList;
         private ComboBox languageCombo;
+        private CheckBox enableSelectionHotkey;
+        private TextBox selectionHotkeyBox;
+        private Label selectionHotkeyStatus;
+        private CheckBox recognizeBareDomains;
+        private CheckBox trayAutoStart;
+        private CheckBox keepTrayOnSettingsClose;
+        private bool loadingSelectionControls;
+        private PickerConfig appliedConfig;
+        private string appliedSnapshot;
+        private bool closingWithoutPrompt;
         private List<BrowserInfo> browsers;
 
         public SettingsForm(PickerConfig config)
@@ -1409,6 +2331,7 @@ namespace LXBrowserPicker
             Config = config;
             Text = I18n.T("SettingsTitle");
             Icon = Program.GetAppIcon();
+            Font = SystemFonts.MessageBoxFont;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(800, 540);
             MinimumSize = new Size(800, 540);
@@ -1418,8 +2341,10 @@ namespace LXBrowserPicker
             tabs.Size = new Size(780, 470);
 
             TabPage settingsTab = new TabPage(I18n.T("Settings"));
+            TabPage selectionTab = new TabPage(I18n.T("SelectionOpenLinks"));
             TabPage aboutTab = new TabPage(I18n.T("About"));
             tabs.TabPages.Add(settingsTab);
+            tabs.TabPages.Add(selectionTab);
             tabs.TabPages.Add(aboutTab);
 
             browserList = new ListView();
@@ -1506,17 +2431,34 @@ namespace LXBrowserPicker
             };
 
             Button ok = new Button();
-            ok.Text = I18n.T("Save");
-            ok.Location = new Point(606, 498);
-            ok.Size = new Size(74, 28);
-            ok.Click += delegate { Config.language = IndexToLanguage(languageCombo.SelectedIndex); };
-            ok.DialogResult = DialogResult.OK;
+            ok.Text = I18n.T("OK");
+            ok.Location = new Point(500, 494);
+            ok.Size = new Size(82, 32);
+            ok.Click += delegate
+            {
+                if (ApplyCurrentSettings())
+                {
+                    closingWithoutPrompt = true;
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+            };
+
+            Button apply = new Button();
+            apply.Text = I18n.T("Apply");
+            apply.Location = new Point(590, 494);
+            apply.Size = new Size(82, 32);
+            apply.Click += delegate { ApplyCurrentSettings(); };
 
             Button cancel = new Button();
             cancel.Text = I18n.T("Cancel");
-            cancel.Location = new Point(688, 498);
-            cancel.Size = new Size(74, 28);
-            cancel.DialogResult = DialogResult.Cancel;
+            cancel.Location = new Point(680, 494);
+            cancel.Size = new Size(82, 32);
+            cancel.Click += delegate
+            {
+                DialogResult = DialogResult.Cancel;
+                Close();
+            };
 
             settingsTab.Controls.Add(browserList);
             settingsTab.Controls.Add(addBrowser);
@@ -1531,15 +2473,326 @@ namespace LXBrowserPicker
             settingsTab.Controls.Add(removeRule);
             settingsTab.Controls.Add(languageLabel);
             settingsTab.Controls.Add(languageCombo);
+            selectionTab.Controls.Add(CreateSelectionOpenLinksPage());
             aboutTab.Controls.Add(CreateAboutGroup());
             Controls.Add(tabs);
             Controls.Add(ok);
+            Controls.Add(apply);
             Controls.Add(cancel);
 
             AcceptButton = ok;
             CancelButton = cancel;
             RefreshBrowsers();
             RefreshRules();
+            RefreshSelectionControls();
+            StyleButtons(this);
+            CaptureAppliedConfigSnapshot();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (!closingWithoutPrompt && HasUnappliedChanges())
+            {
+                DialogResult result = MessageBox.Show(
+                    I18n.T("UnsavedSettingsPrompt"),
+                    I18n.T("UnsavedSettingsTitle"),
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                if (result == DialogResult.Yes)
+                {
+                    if (!ApplyCurrentSettings())
+                    {
+                        e.Cancel = true;
+                        return;
+                    }
+                }
+                else
+                {
+                    RestoreAppliedConfig();
+                }
+            }
+
+            base.OnFormClosing(e);
+        }
+
+        private bool ApplyCurrentSettings()
+        {
+            SyncConfigFromControls();
+            if (!Program.ApplySettingsConfig(Config)) return false;
+            CaptureAppliedConfigSnapshot();
+            return true;
+        }
+
+        private bool HasUnappliedChanges()
+        {
+            SyncConfigFromControls();
+            return !string.Equals(SnapshotConfig(Config), appliedSnapshot, StringComparison.Ordinal);
+        }
+
+        private void SyncConfigFromControls()
+        {
+            Config.language = IndexToLanguage(languageCombo.SelectedIndex);
+            SaveSelectionSettingsFromControls();
+        }
+
+        private void CaptureAppliedConfigSnapshot()
+        {
+            SyncConfigFromControls();
+            appliedConfig = CloneConfig(Config);
+            appliedSnapshot = SnapshotConfig(Config);
+        }
+
+        private void RestoreAppliedConfig()
+        {
+            if (appliedConfig == null) return;
+            CopyConfig(appliedConfig, Config);
+        }
+
+        private static string SnapshotConfig(PickerConfig config)
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            return serializer.Serialize(config);
+        }
+
+        private static PickerConfig CloneConfig(PickerConfig config)
+        {
+            PickerConfig clone = new PickerConfig();
+            CopyConfig(config, clone);
+            return clone;
+        }
+
+        private static void CopyConfig(PickerConfig source, PickerConfig target)
+        {
+            target.defaultBrowserPath = source.defaultBrowserPath ?? "";
+            target.firstRunScanDone = source.firstRunScanDone;
+            target.defaultAppGuideCompleted = source.defaultAppGuideCompleted;
+            target.language = string.IsNullOrWhiteSpace(source.language) ? "auto" : source.language;
+            target.selectionHotkeyEnabled = source.selectionHotkeyEnabled;
+            target.selectionHotkey = string.IsNullOrWhiteSpace(source.selectionHotkey) ? "Ctrl+Alt+X" : source.selectionHotkey;
+            target.selectionRecognizeBareDomains = source.selectionRecognizeBareDomains;
+            target.selectionTrayAutoStart = source.selectionTrayAutoStart;
+            target.selectionKeepTrayOnSettingsClose = source.selectionKeepTrayOnSettingsClose;
+
+            target.manualBrowsers = new List<BrowserEntry>();
+            if (source.manualBrowsers != null)
+            {
+                foreach (BrowserEntry browser in source.manualBrowsers)
+                {
+                    target.manualBrowsers.Add(new BrowserEntry
+                    {
+                        name = browser == null ? "" : browser.name,
+                        path = browser == null ? "" : browser.path
+                    });
+                }
+            }
+
+            target.appRules = new List<AppRule>();
+            if (source.appRules != null)
+            {
+                foreach (AppRule rule in source.appRules)
+                {
+                    target.appRules.Add(new AppRule
+                    {
+                        process = rule == null ? "" : rule.process,
+                        browserPath = rule == null ? "" : rule.browserPath
+                    });
+                }
+            }
+        }
+
+        private Control CreateSelectionOpenLinksPage()
+        {
+            Panel page = new Panel();
+            page.Dock = DockStyle.Fill;
+
+            Label heading = new Label();
+            heading.Text = I18n.T("SelectionOpenLinksHeading");
+            heading.Font = new Font(Font, FontStyle.Bold);
+            heading.Location = new Point(18, 16);
+            heading.Size = new Size(220, 22);
+
+            Label subtitle = new Label();
+            subtitle.Text = I18n.T("SelectionOpenLinksSubtitle");
+            subtitle.Location = new Point(18, 42);
+            subtitle.Size = new Size(720, 20);
+
+            GroupBox hotkeyGroup = new GroupBox();
+            hotkeyGroup.Text = I18n.T("GlobalHotkey");
+            hotkeyGroup.Location = new Point(18, 74);
+            hotkeyGroup.Size = new Size(350, 150);
+
+            enableSelectionHotkey = new CheckBox();
+            enableSelectionHotkey.Text = I18n.T("EnableSelectionHotkey");
+            enableSelectionHotkey.Location = new Point(14, 26);
+            enableSelectionHotkey.Size = new Size(300, 24);
+            enableSelectionHotkey.CheckedChanged += delegate
+            {
+                if (!loadingSelectionControls && enableSelectionHotkey.Checked)
+                {
+                    trayAutoStart.Checked = true;
+                    keepTrayOnSettingsClose.Checked = true;
+                }
+                UpdateSelectionControlAvailability();
+            };
+
+            Label hotkeyLabel = new Label();
+            hotkeyLabel.Text = I18n.T("Hotkey");
+            hotkeyLabel.Location = new Point(14, 62);
+            hotkeyLabel.Size = new Size(74, 22);
+
+            selectionHotkeyBox = new TextBox();
+            selectionHotkeyBox.Location = new Point(92, 58);
+            selectionHotkeyBox.Size = new Size(120, 24);
+            selectionHotkeyBox.ReadOnly = true;
+
+            Button recordHotkey = new Button();
+            recordHotkey.Text = I18n.T("RecordHotkey");
+            recordHotkey.Location = new Point(222, 56);
+            recordHotkey.Size = new Size(104, 28);
+            recordHotkey.Click += delegate
+            {
+                string hotkey = HotkeyCaptureForm.CaptureHotkey(this, Config.selectionHotkey);
+                if (!string.IsNullOrWhiteSpace(hotkey))
+                {
+                    Config.selectionHotkey = hotkey;
+                    selectionHotkeyBox.Text = hotkey;
+                }
+            };
+
+            selectionHotkeyStatus = new Label();
+            selectionHotkeyStatus.Location = new Point(14, 104);
+            selectionHotkeyStatus.Size = new Size(312, 22);
+
+            hotkeyGroup.Controls.Add(enableSelectionHotkey);
+            hotkeyGroup.Controls.Add(hotkeyLabel);
+            hotkeyGroup.Controls.Add(selectionHotkeyBox);
+            hotkeyGroup.Controls.Add(recordHotkey);
+            hotkeyGroup.Controls.Add(selectionHotkeyStatus);
+
+            GroupBox recognitionGroup = new GroupBox();
+            recognitionGroup.Text = I18n.T("LinkRecognition");
+            recognitionGroup.Location = new Point(394, 74);
+            recognitionGroup.Size = new Size(350, 150);
+
+            CheckBox standardLinks = new CheckBox();
+            standardLinks.Text = I18n.T("RecognizeStandardLinks");
+            standardLinks.Location = new Point(14, 26);
+            standardLinks.Size = new Size(300, 24);
+            standardLinks.Checked = true;
+            standardLinks.Enabled = false;
+
+            recognizeBareDomains = new CheckBox();
+            recognizeBareDomains.Text = I18n.T("RecognizeBareDomains");
+            recognizeBareDomains.Location = new Point(14, 56);
+            recognizeBareDomains.Size = new Size(312, 24);
+
+            Label bareExample = new Label();
+            bareExample.Text = I18n.T("BareDomainExample");
+            bareExample.Location = new Point(34, 84);
+            bareExample.Size = new Size(300, 18);
+
+            Label extraHint = new Label();
+            extraHint.Text = I18n.T("SelectionExtraTextHint");
+            extraHint.Location = new Point(14, 108);
+            extraHint.Size = new Size(320, 18);
+
+            Label noSearch = new Label();
+            noSearch.Text = I18n.T("NoSearchHint");
+            noSearch.Location = new Point(14, 128);
+            noSearch.Size = new Size(300, 18);
+
+            recognitionGroup.Controls.Add(standardLinks);
+            recognitionGroup.Controls.Add(recognizeBareDomains);
+            recognitionGroup.Controls.Add(bareExample);
+            recognitionGroup.Controls.Add(extraHint);
+            recognitionGroup.Controls.Add(noSearch);
+
+            GroupBox backgroundGroup = new GroupBox();
+            backgroundGroup.Text = I18n.T("BackgroundRun");
+            backgroundGroup.Location = new Point(18, 246);
+            backgroundGroup.Size = new Size(350, 150);
+
+            trayAutoStart = new CheckBox();
+            trayAutoStart.Text = I18n.T("TrayAutoStart");
+            trayAutoStart.Location = new Point(14, 28);
+            trayAutoStart.Size = new Size(300, 24);
+
+            keepTrayOnSettingsClose = new CheckBox();
+            keepTrayOnSettingsClose.Text = I18n.T("KeepTrayOnSettingsClose");
+            keepTrayOnSettingsClose.Location = new Point(14, 58);
+            keepTrayOnSettingsClose.Size = new Size(316, 24);
+
+            Label trayRequired = new Label();
+            trayRequired.Text = I18n.T("TrayRequiredHint");
+            trayRequired.Location = new Point(14, 92);
+            trayRequired.Size = new Size(320, 18);
+
+            Label trayOnlySelection = new Label();
+            trayOnlySelection.Text = I18n.T("TrayOnlySelectionHint");
+            trayOnlySelection.Location = new Point(14, 116);
+            trayOnlySelection.Size = new Size(320, 30);
+
+            backgroundGroup.Controls.Add(trayAutoStart);
+            backgroundGroup.Controls.Add(keepTrayOnSettingsClose);
+            backgroundGroup.Controls.Add(trayRequired);
+            backgroundGroup.Controls.Add(trayOnlySelection);
+
+            GroupBox privacyGroup = new GroupBox();
+            privacyGroup.Text = I18n.T("PrivacyNotice");
+            privacyGroup.Location = new Point(394, 246);
+            privacyGroup.Size = new Size(350, 150);
+
+            RichTextBox privacyText = CreateInfoText(I18n.T("ClipboardPrivacyText"), new Point(14, 26), new Size(316, 90));
+            privacyGroup.Controls.Add(privacyText);
+
+            page.Controls.Add(heading);
+            page.Controls.Add(subtitle);
+            page.Controls.Add(hotkeyGroup);
+            page.Controls.Add(recognitionGroup);
+            page.Controls.Add(backgroundGroup);
+            page.Controls.Add(privacyGroup);
+            return page;
+        }
+
+        private void RefreshSelectionControls()
+        {
+            if (enableSelectionHotkey == null) return;
+
+            loadingSelectionControls = true;
+            enableSelectionHotkey.Checked = Config.selectionHotkeyEnabled;
+            selectionHotkeyBox.Text = string.IsNullOrWhiteSpace(Config.selectionHotkey) ? "Ctrl+Alt+X" : Config.selectionHotkey;
+            recognizeBareDomains.Checked = Config.selectionRecognizeBareDomains;
+            trayAutoStart.Checked = Config.selectionTrayAutoStart;
+            keepTrayOnSettingsClose.Checked = Config.selectionKeepTrayOnSettingsClose;
+            loadingSelectionControls = false;
+
+            UpdateSelectionControlAvailability();
+        }
+
+        private void UpdateSelectionControlAvailability()
+        {
+            bool enabled = enableSelectionHotkey.Checked;
+            selectionHotkeyBox.Enabled = enabled;
+            recognizeBareDomains.Enabled = enabled;
+            trayAutoStart.Enabled = enabled;
+            keepTrayOnSettingsClose.Enabled = enabled;
+            selectionHotkeyStatus.Text = string.Format(I18n.T("HotkeyStatus"), enabled ? I18n.T("HotkeyStatusEnabled") : I18n.T("HotkeyStatusDisabled"));
+        }
+
+        private void SaveSelectionSettingsFromControls()
+        {
+            Config.selectionHotkeyEnabled = enableSelectionHotkey.Checked;
+            Config.selectionHotkey = string.IsNullOrWhiteSpace(selectionHotkeyBox.Text) ? "Ctrl+Alt+X" : selectionHotkeyBox.Text;
+            Config.selectionRecognizeBareDomains = recognizeBareDomains.Checked;
+            Config.selectionTrayAutoStart = trayAutoStart.Checked;
+            Config.selectionKeepTrayOnSettingsClose = keepTrayOnSettingsClose.Checked;
         }
 
         private GroupBox CreateAboutGroup()
@@ -1555,23 +2808,23 @@ namespace LXBrowserPicker
             title.Location = new Point(14, 24);
             title.Size = new Size(430, 42);
 
-            RichTextBox description = CreateInfoText(I18n.T("AboutDescription"), new Point(14, 68), new Size(430, 92));
+            RichTextBox description = CreateInfoText(I18n.T("AboutDescription"), new Point(14, 68), new Size(430, 128));
 
             LinkLabel github = new LinkLabel();
             github.Text = I18n.T("AboutGithub");
-            github.Location = new Point(14, 168);
+            github.Location = new Point(14, 208);
             github.Size = new Size(430, 20);
             github.LinkClicked += delegate { Process.Start("https://github.com/lttlz/LXBrowserPicker"); };
 
             Label author = new Label();
             author.Text = I18n.T("AboutAuthor");
-            author.Location = new Point(14, 194);
+            author.Location = new Point(14, 234);
             author.Size = new Size(430, 18);
 
             AddQrBlock(group, "wechat-contact.png", I18n.T("WechatContact"), 470);
             AddQrBlock(group, "wechat-support.png", I18n.T("WechatSupport"), 600);
 
-            RichTextBox supportNote = CreateInfoText(I18n.T("AboutFree") + " " + I18n.T("AboutSupportNote"), new Point(14, 242), new Size(430, 76));
+            RichTextBox supportNote = CreateInfoText(I18n.T("AboutFree") + " " + I18n.T("AboutSupportNote"), new Point(14, 292), new Size(430, 90));
 
             group.Controls.Add(title);
             group.Controls.Add(description);
@@ -1579,6 +2832,24 @@ namespace LXBrowserPicker
             group.Controls.Add(author);
             group.Controls.Add(supportNote);
             return group;
+        }
+
+        private void StyleButtons(Control parent)
+        {
+            foreach (Control control in parent.Controls)
+            {
+                Button button = control as Button;
+                if (button != null)
+                {
+                    button.TextAlign = ContentAlignment.MiddleCenter;
+                    button.Padding = new Padding(0, 1, 0, 0);
+                }
+
+                if (control.HasChildren)
+                {
+                    StyleButtons(control);
+                }
+            }
         }
 
         private RichTextBox CreateInfoText(string text, Point location, Size size)
@@ -1807,6 +3078,86 @@ namespace LXBrowserPicker
             if (index == 1) return "en-US";
             if (index == 2) return "zh-CN";
             return "auto";
+        }
+    }
+
+    internal class HotkeyCaptureForm : Form
+    {
+        private Label prompt;
+        private Label current;
+        public string SelectedHotkey { get; private set; }
+
+        public static string CaptureHotkey(IWin32Window owner, string currentHotkey)
+        {
+            using (HotkeyCaptureForm form = new HotkeyCaptureForm(currentHotkey))
+            {
+                DialogResult result = owner == null ? form.ShowDialog() : form.ShowDialog(owner);
+                return result == DialogResult.OK ? form.SelectedHotkey : "";
+            }
+        }
+
+        private HotkeyCaptureForm(string currentHotkey)
+        {
+            Text = I18n.T("HotkeyCaptureTitle");
+            Icon = Program.GetAppIcon();
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            KeyPreview = true;
+            ClientSize = new Size(360, 132);
+
+            prompt = new Label();
+            prompt.Text = I18n.T("HotkeyCapturePrompt");
+            prompt.Location = new Point(18, 18);
+            prompt.Size = new Size(320, 34);
+
+            current = new Label();
+            current.Text = string.IsNullOrWhiteSpace(currentHotkey) ? "Ctrl+Alt+X" : currentHotkey;
+            current.Font = new Font(Font, FontStyle.Bold);
+            current.Location = new Point(18, 64);
+            current.Size = new Size(320, 24);
+            current.TextAlign = ContentAlignment.MiddleCenter;
+
+            Button cancel = new Button();
+            cancel.Text = I18n.T("Cancel");
+            cancel.Location = new Point(254, 96);
+            cancel.Size = new Size(82, 26);
+            cancel.DialogResult = DialogResult.Cancel;
+
+            Controls.Add(prompt);
+            Controls.Add(current);
+            Controls.Add(cancel);
+            CancelButton = cancel;
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.KeyCode == Keys.Escape)
+            {
+                DialogResult = DialogResult.Cancel;
+                Close();
+                return;
+            }
+            if (IsModifierOnly(e.KeyCode)) return;
+
+            Keys modifiers = e.Modifiers;
+            if (modifiers == Keys.None) return;
+
+            SelectedHotkey = Program.FormatHotkey(modifiers, e.KeyCode);
+            current.Text = SelectedHotkey;
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private bool IsModifierOnly(Keys key)
+        {
+            return key == Keys.ControlKey || key == Keys.ShiftKey || key == Keys.Menu ||
+                   key == Keys.LControlKey || key == Keys.RControlKey ||
+                   key == Keys.LShiftKey || key == Keys.RShiftKey ||
+                   key == Keys.LMenu || key == Keys.RMenu ||
+                   key == Keys.LWin || key == Keys.RWin;
         }
     }
 

@@ -1,29 +1,31 @@
-# LXBrowserPicker 1.0.0
+# LXBrowserPicker 1.1.0
 
 LXBrowserPicker is a multi-browser picker for Windows. It can act as the default browser handler for requests sent to the system default browser, letting you choose which browser opens links, HTML files, and other browser-launch scenarios, with optional per-source rules.
 
 ## Included
 
-- First stable `1.0.0` release.
-- New black-background LXBrowserPicker application icon.
-- About section moved into a dedicated Settings tab instead of being shown directly on the main settings view.
-- Author, GitHub, WeChat contact, and voluntary support entries are available from the About tab.
-- About text spacing has been refined for a cleaner final layout.
-- Browser handoff after selection is more robust for external applications, with shell-based launch, direct-start fallback, and diagnostic logging on failure.
-- Settings browser-list buttons now clarify default clearing versus manual-entry removal.
-- Voluntary appreciation remains optional. All features are free, with no paid limits or required donations.
+- New Selected Text Links settings tab.
+- New tray-based global selected-text hotkey, defaulting to `Ctrl+Alt+X`.
+- Selected text may contain extra content. LXBrowserPicker extracts the first detected link and opens it through the existing browser picker flow.
+- Optional common bare-domain recognition, including examples such as `example.com/path` and `example.cn`.
+- Optional Windows startup registration for the tray listener.
+- Settings now separates OK and Apply, and warns when closing with unapplied changes.
+- Refined English Settings layout and button alignment.
+- Privacy wording for the selected-text workflow: when the hotkey is pressed, LXBrowserPicker temporarily copies selected text, reads the clipboard, then tries to restore the original clipboard.
 
 ## Download
 
-- `LXBrowserPickerSetup-v1.0.0.exe`
+- `LXBrowserPickerSetup-v1.1.0.exe`
 
 ## SHA256
 
 ```text
-8FFC6826F93D1A33CCECDFF454588BA6690A939E9686AF3FE56E39463B5E4AB4
+55ADEE9570D25A07035E6CA449317FC50876E1789DABFD14B9E37FA5B759F49C
 ```
 
 ## Notes
+
+The tray listener only powers the selected-text hotkey. Exiting the tray does not affect LXBrowserPicker's normal default-browser picker behavior.
 
 Windows does not allow apps to silently set themselves as the default browser. After installation, open Windows Default Apps and set both `http` and `https` to `LXBrowserPicker`.
 

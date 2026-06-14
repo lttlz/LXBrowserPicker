@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Added a dedicated Selected Text Links settings tab.
+- Added a tray-based global selected-text hotkey, defaulting to `Ctrl+Alt+X`.
+- Added URL extraction from selected text, including extra surrounding text and optional common bare-domain recognition such as `example.com/path` and `example.cn`.
+- Added optional Windows startup registration for the tray listener.
+- Split Settings actions into OK and Apply, with an unapplied-changes prompt when closing.
+- Refined English Settings layout and button alignment.
+- Documented the clipboard privacy behavior used to copy selected text and restore the previous clipboard.
+
 ## 1.0.0
 
 - Promoted LXBrowserPicker to the first stable release version.
