@@ -1,26 +1,19 @@
-# LXBrowserPicker 1.1.0
+# LXBrowserPicker 1.1.1
 
 LXBrowserPicker is a multi-browser picker for Windows. It can act as the default browser handler for requests sent to the system default browser, letting you choose which browser opens links, HTML files, and other browser-launch scenarios, with optional per-source rules.
 
-## Included
+## Fixed
 
-- New Selected Text Links settings tab.
-- New tray-based global selected-text hotkey, defaulting to `Ctrl+Alt+X`.
-- Selected text may contain extra content. LXBrowserPicker extracts the first detected link and opens it through the existing browser picker flow.
-- Optional common bare-domain recognition, including examples such as `example.com/path` and `example.cn`.
-- Optional Windows startup registration for the tray listener.
-- Settings now separates OK and Apply, and warns when closing with unapplied changes.
-- Refined English Settings layout and button alignment.
-- Privacy wording for the selected-text workflow: when the hotkey is pressed, LXBrowserPicker temporarily copies selected text, reads the clipboard, then tries to restore the original clipboard.
+- Shortened the About tab QR code captions so the English labels for WeChat feedback and voluntary support are no longer truncated.
 
 ## Download
 
-- `LXBrowserPickerSetup-v1.1.0.exe`
+- `LXBrowserPickerSetup-v1.1.1.exe`
 
 ## SHA256
 
 ```text
-55ADEE9570D25A07035E6CA449317FC50876E1789DABFD14B9E37FA5B759F49C
+7DCAE4806896E1DF2FBFE04B0F7F77B703FA6AC36CA9427FB3D983D6CB98E199
 ```
 
 ## Notes

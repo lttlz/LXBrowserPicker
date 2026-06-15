@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed truncated About tab QR code labels in English by shortening the WeChat feedback and voluntary support captions.
+
 ## 1.1.0
 
 - Added a dedicated Selected Text Links settings tab.

@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.1.0")]
 
 namespace LXBrowserPicker
 {
@@ -190,8 +190,8 @@ namespace LXBrowserPicker
                     case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
                     case "AboutFree": return "\u672C\u8F6F\u4EF6\u5B8C\u5168\u514D\u8D39\u5F00\u653E\u5168\u90E8\u529F\u80FD\uFF0C\u65E0\u4ED8\u8D39\u9650\u5236\u3001\u65E0\u5F3A\u5236\u6253\u8D4F\u3002";
                     case "AboutSupportNote": return "\u82E5\u60A8\u89C9\u5F97\u5DE5\u5177\u5B9E\u7528\uFF0C\u53EF\u81EA\u613F\u5C0F\u989D\u8D5E\u8D4F\u652F\u6301\u540E\u7EED\u7EF4\u62A4\u66F4\u65B0\uFF0C\u652F\u6301\u4E0E\u5426\u4E0D\u5F71\u54CD\u4EFB\u4F55\u4F7F\u7528\u6743\u9650\u3002";
-                    case "WechatContact": return "\u6DFB\u52A0\u5FAE\u4FE1\uFF1A\u53CD\u9988\u95EE\u9898 / \u4EA4\u6D41\u5EFA\u8BAE";
-                    case "WechatSupport": return "\u81EA\u613F\u8D5E\u8D4F\uFF1A\u652F\u6301\u540E\u7EED\u7EF4\u62A4\u66F4\u65B0";
+                    case "WechatContact": return "\u5FAE\u4FE1\u53CD\u9988";
+                    case "WechatSupport": return "\u81EA\u613F\u8D5E\u8D4F";
                     case "AutoBrowserCannotRemove": return "\u8FD9\u662F\u81EA\u52A8\u626B\u63CF\u5230\u7684\u6D4F\u89C8\u5668\uFF0C\u4E0D\u80FD\u7528\u201C\u79FB\u9664\u624B\u52A8\u6DFB\u52A0\u201D\u5220\u9664\u3002";
                     case "LaunchBrowserFailed": return "\u65E0\u6CD5\u542F\u52A8\u6240\u9009\u6D4F\u89C8\u5668\u3002\r\n\r\n\u6D4F\u89C8\u5668\uFF1A{0}\r\n\u94FE\u63A5\uFF1A{1}\r\n\u9519\u8BEF\uFF1A{2}\r\n\r\n\u5DF2\u5199\u5165\u8BCA\u65AD\u65E5\u5FD7\uFF1A\r\n{3}";
                     case "LangAuto": return "\u81EA\u52A8";
@@ -285,8 +285,8 @@ namespace LXBrowserPicker
                 case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
                 case "AboutFree": return "LXBrowserPicker is completely free and all features are available without paid limits or required donations.";
                 case "AboutSupportNote": return "If you find it useful, you may optionally make a small appreciation donation to support maintenance updates. Supporting it or not does not affect any usage rights.";
-                case "WechatContact": return "WeChat: feedback / suggestions";
-                case "WechatSupport": return "Voluntary appreciation: support maintenance updates";
+                case "WechatContact": return "WeChat feedback";
+                case "WechatSupport": return "Voluntary support";
                 case "AutoBrowserCannotRemove": return "This browser was found automatically and cannot be removed with Remove Manual Entry.";
                 case "LaunchBrowserFailed": return "Could not launch the selected browser.\r\n\r\nBrowser: {0}\r\nLink: {1}\r\nError: {2}\r\n\r\nDiagnostic log written to:\r\n{3}";
                 case "LangAuto": return "Auto";
@@ -354,7 +354,7 @@ namespace LXBrowserPicker
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.1.0";
+        private const string AppVersion = "1.1.1";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private const string TrayRunValueName = "LXBrowserPickerTray";
         private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
