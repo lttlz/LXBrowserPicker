@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.1.1.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.1.1.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.2.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.2.0")]
 
 namespace LXBrowserPicker
 {
@@ -177,6 +177,7 @@ namespace LXBrowserPicker
                     case "HotkeyCapturePrompt": return "\u6309\u4E0B\u8981\u4F7F\u7528\u7684\u7EC4\u5408\u952E\u3002Esc \u53D6\u6D88\u3002";
                     case "SelectionNoUrl": return "\u9009\u4E2D\u6587\u672C\u4E2D\u6CA1\u6709\u627E\u5230\u53EF\u6253\u5F00\u7684\u94FE\u63A5\u3002";
                     case "SelectionCopyFailed": return "\u65E0\u6CD5\u83B7\u53D6\u5F53\u524D\u9009\u4E2D\u6587\u672C\u3002\u5F53\u524D\u5E94\u7528\u53EF\u80FD\u7981\u6B62\u590D\u5236\uFF0C\u6216\u526A\u8D34\u677F\u6B63\u88AB\u5360\u7528\u3002";
+                    case "SelectionRecognizing": return "\u6B63\u5728\u8BC6\u522B\u94FE\u63A5...";
                     case "HotkeyRegisterFailed": return "\u65E0\u6CD5\u6CE8\u518C\u5168\u5C40\u5FEB\u6377\u952E\uFF1A{0}\u3002\u5B83\u53EF\u80FD\u5DF2\u88AB\u5176\u4ED6\u7A0B\u5E8F\u5360\u7528\u3002";
                     case "TrayMenuSettings": return "\u8BBE\u7F6E";
                     case "TrayMenuPause": return "\u6682\u505C\u5FEB\u6377\u952E";
@@ -272,6 +273,7 @@ namespace LXBrowserPicker
                 case "HotkeyCapturePrompt": return "Press the key combination to use. Press Esc to cancel.";
                 case "SelectionNoUrl": return "No openable link was found in the selected text.";
                 case "SelectionCopyFailed": return "Could not get the selected text. The current app may block copying, or the clipboard may be busy.";
+                case "SelectionRecognizing": return "Recognizing link...";
                 case "HotkeyRegisterFailed": return "Could not register global hotkey: {0}. It may already be used by another app.";
                 case "TrayMenuSettings": return "Settings";
                 case "TrayMenuPause": return "Pause Hotkey";
@@ -354,7 +356,7 @@ namespace LXBrowserPicker
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.1.1";
+        private const string AppVersion = "1.1.2";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private const string TrayRunValueName = "LXBrowserPickerTray";
         private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
@@ -373,12 +375,26 @@ namespace LXBrowserPicker
         private const ushort VirtualKeyRWin = 0x5C;
         private const ushort VirtualKeyEscape = 0x1B;
         private const ushort VirtualKeyC = 0x43;
+        private const int AutomationSelectionMaxLength = 8192;
+        private const int ClipboardFastCopyTimeoutMilliseconds = 240;
+        private const int ClipboardSlowCopyTimeoutMilliseconds = 1000;
+        private const int ClipboardPollIntervalMilliseconds = 15;
+        private const int ModifierPollIntervalMilliseconds = 25;
+        private const int ModifierWaitLogThresholdMilliseconds = 450;
+        private const int SelectionToastAutoCloseMilliseconds = 1600;
+        private const int SelectionToastOffset = 22;
+        private const int SelectionToastWidth = 210;
+        private const int SelectionToastHeight = 48;
+        private const int WsExToolWindow = 0x00000080;
+        private const int WsExNoActivate = 0x08000000;
         private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string InstallConfigPath = Path.Combine(BaseDir, ConfigFileName);
         private static readonly string UserConfigDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName);
         private static readonly string UserConfigPath = Path.Combine(UserConfigDir, ConfigFileName);
         private static readonly string LaunchLogPath = Path.Combine(UserConfigDir, "launch.log");
         private static readonly string SelectionLogPath = Path.Combine(UserConfigDir, "selection.log");
+        private static readonly string SelectionTimingFlagPath = Path.Combine(UserConfigDir, "selection-timing.enabled");
+        private static Keys currentSelectionHotkeyKey = Keys.None;
         internal static string AppVersionText { get { return AppVersion; } }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -512,7 +528,9 @@ namespace LXBrowserPicker
 
         private static void HandleUrl(PickerConfig config, string url, string parentProcess)
         {
+            Stopwatch handleStopwatch = Stopwatch.StartNew();
             List<BrowserInfo> available = FindBrowsers(config);
+            LogSelectionTiming("handle find_browsers_ms=" + handleStopwatch.ElapsedMilliseconds + " browser_count=" + available.Count + " parent=" + parentProcess);
             if (available.Count == 0)
             {
                 MessageBox.Show(I18n.T("NoBrowser"), I18n.T("AppTitle"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -524,6 +542,7 @@ namespace LXBrowserPicker
             if (ruleMatch.Matched && ruleMatch.Browser != null)
             {
                 OpenBrowser(ruleMatch.Browser, url, parentProcess);
+                LogSelectionTiming("handle opened_by_rule total_ms=" + handleStopwatch.ElapsedMilliseconds);
                 return;
             }
 
@@ -533,10 +552,12 @@ namespace LXBrowserPicker
                 if (defaultBrowser != null)
                 {
                     OpenBrowser(defaultBrowser, url, parentProcess);
+                    LogSelectionTiming("handle opened_by_default total_ms=" + handleStopwatch.ElapsedMilliseconds);
                     return;
                 }
             }
 
+            LogSelectionTiming("handle show_picker_before_ms=" + handleStopwatch.ElapsedMilliseconds);
             PickResult pick = PickerForm.Pick(available, url, parentProcess, delegate(Form owner)
             {
                 ShowSettings(config, owner);
@@ -552,6 +573,7 @@ namespace LXBrowserPicker
                     SaveAlwaysRule(config, parentProcess, pick.Browser);
                 }
                 OpenBrowser(pick.Browser, url, parentProcess);
+                LogSelectionTiming("handle opened_after_picker total_ms=" + handleStopwatch.ElapsedMilliseconds + " action=" + pick.Action);
             }
         }
 
@@ -1262,22 +1284,47 @@ namespace LXBrowserPicker
 
         private static void OpenSelectedTextUrl(PickerConfig config, NotifyIcon notifyIcon)
         {
+            Stopwatch totalStopwatch = Stopwatch.StartNew();
+            SelectionRecognizingToast toast = SelectionRecognizingToast.ShowNearCursor(I18n.T("SelectionRecognizing"));
             string sourceProcess = GetForegroundProcessName();
-            string selectedText;
-            if (!TryReadSelectedText(out selectedText))
+            long foregroundMilliseconds = totalStopwatch.ElapsedMilliseconds;
+            try
             {
-                ShowSelectionTip(notifyIcon, I18n.T("SelectionCopyFailed"));
-                return;
-            }
+                string selectedText;
+                if (!TryReadSelectedText(out selectedText))
+                {
+                    LogSelectionTiming("open failed step=read total_ms=" + totalStopwatch.ElapsedMilliseconds + " foreground_ms=" + foregroundMilliseconds);
+                    CloseSelectionToast(ref toast);
+                    ShowSelectionTip(notifyIcon, I18n.T("SelectionCopyFailed"));
+                    return;
+                }
 
-            string url = ExtractFirstUrl(selectedText, config.selectionRecognizeBareDomains);
-            if (string.IsNullOrWhiteSpace(url))
+                long readMilliseconds = totalStopwatch.ElapsedMilliseconds - foregroundMilliseconds;
+                string url = ExtractFirstUrl(selectedText, config.selectionRecognizeBareDomains);
+                long extractMilliseconds = totalStopwatch.ElapsedMilliseconds - foregroundMilliseconds - readMilliseconds;
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    LogSelectionTiming("open failed step=extract total_ms=" + totalStopwatch.ElapsedMilliseconds + " foreground_ms=" + foregroundMilliseconds + " read_ms=" + readMilliseconds + " extract_ms=" + extractMilliseconds + " chars=" + selectedText.Length);
+                    CloseSelectionToast(ref toast);
+                    ShowSelectionTip(notifyIcon, I18n.T("SelectionNoUrl"));
+                    return;
+                }
+
+                LogSelectionTiming("open ok total_before_handle_ms=" + totalStopwatch.ElapsedMilliseconds + " foreground_ms=" + foregroundMilliseconds + " read_ms=" + readMilliseconds + " extract_ms=" + extractMilliseconds + " chars=" + selectedText.Length);
+                CloseSelectionToast(ref toast);
+                HandleUrl(config, url, sourceProcess);
+            }
+            finally
             {
-                ShowSelectionTip(notifyIcon, I18n.T("SelectionNoUrl"));
-                return;
+                CloseSelectionToast(ref toast);
             }
+        }
 
-            HandleUrl(config, url, sourceProcess);
+        private static void CloseSelectionToast(ref SelectionRecognizingToast toast)
+        {
+            if (toast == null) return;
+            toast.CloseToast();
+            toast = null;
         }
 
         private static void ShowSelectionTip(NotifyIcon notifyIcon, string message)
@@ -1332,12 +1379,33 @@ namespace LXBrowserPicker
         private static bool TryReadSelectedText(out string text)
         {
             text = "";
-            if (TryReadSelectedTextFromAutomation(out text)) return true;
-            if (TryReadSelectedTextFromClipboard(out text, false)) return true;
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            Stopwatch stepStopwatch = Stopwatch.StartNew();
+            if (TryReadSelectedTextFromAutomation(out text))
+            {
+                LogSelectionTiming("read ok source=automation total_ms=" + stopwatch.ElapsedMilliseconds + " automation_ms=" + stepStopwatch.ElapsedMilliseconds + " chars=" + text.Length);
+                return true;
+            }
 
-            SendSingleKey(VirtualKeyEscape);
-            Thread.Sleep(40);
-            return TryReadSelectedTextFromClipboard(out text, true);
+            long automationMilliseconds = stepStopwatch.ElapsedMilliseconds;
+            stepStopwatch.Restart();
+            if (TryReadSelectedTextFromClipboard(out text, false))
+            {
+                LogSelectionTiming("read ok source=clipboard total_ms=" + stopwatch.ElapsedMilliseconds + " automation_ms=" + automationMilliseconds + " clipboard_ms=" + stepStopwatch.ElapsedMilliseconds + " chars=" + text.Length);
+                return true;
+            }
+
+            long firstClipboardMilliseconds = stepStopwatch.ElapsedMilliseconds;
+            Thread.Sleep(80);
+            stepStopwatch.Restart();
+            if (TryReadSelectedTextFromClipboard(out text, true))
+            {
+                LogSelectionTiming("read ok source=clipboard_retry total_ms=" + stopwatch.ElapsedMilliseconds + " automation_ms=" + automationMilliseconds + " clipboard_ms=" + firstClipboardMilliseconds + " clipboard_retry_ms=" + stepStopwatch.ElapsedMilliseconds + " chars=" + text.Length);
+                return true;
+            }
+
+            LogSelectionTiming("read failed total_ms=" + stopwatch.ElapsedMilliseconds + " automation_ms=" + automationMilliseconds + " clipboard_ms=" + firstClipboardMilliseconds + " clipboard_retry_ms=" + stepStopwatch.ElapsedMilliseconds);
+            return false;
         }
 
         private static bool TryReadSelectedTextFromAutomation(out string text)
@@ -1348,12 +1416,6 @@ namespace LXBrowserPicker
                 AutomationElement focused = AutomationElement.FocusedElement;
                 if (TryReadAutomationSelection(focused, out text)) return true;
 
-                IntPtr hwnd = GetForegroundWindow();
-                if (hwnd != IntPtr.Zero)
-                {
-                    AutomationElement foreground = AutomationElement.FromHandle(hwnd);
-                    if (TryReadAutomationSelection(foreground, out text)) return true;
-                }
             }
             catch (Exception ex)
             {
@@ -1381,7 +1443,7 @@ namespace LXBrowserPicker
                 foreach (TextPatternRange range in ranges)
                 {
                     if (range == null) continue;
-                    string item = range.GetText(-1);
+                    string item = range.GetText(AutomationSelectionMaxLength);
                     if (!string.IsNullOrWhiteSpace(item)) builder.Append(item);
                 }
 
@@ -1403,17 +1465,31 @@ namespace LXBrowserPicker
 
             try
             {
+                Stopwatch modifierStopwatch = Stopwatch.StartNew();
+                WaitForHotkeyKeysReleased();
+                if (modifierStopwatch.ElapsedMilliseconds >= ModifierWaitLogThresholdMilliseconds)
+                {
+                    LogSelectionTiming("clipboard hotkey_release_wait_ms=" + modifierStopwatch.ElapsedMilliseconds);
+                }
                 if (!SendCtrlC())
                 {
                     LogSelectionFailure("SendInput Ctrl+C failed. LastWin32Error=" + Marshal.GetLastWin32Error());
                     return false;
                 }
 
-                for (int i = 0; i < 8; i++)
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                bool loggedSlowPath = false;
+                while (stopwatch.ElapsedMilliseconds < ClipboardSlowCopyTimeoutMilliseconds)
                 {
-                    Thread.Sleep(50);
+                    Thread.Sleep(ClipboardPollIntervalMilliseconds);
+                    if (!loggedSlowPath && stopwatch.ElapsedMilliseconds >= ClipboardFastCopyTimeoutMilliseconds)
+                    {
+                        loggedSlowPath = true;
+                        LogSelectionTiming("clipboard entering_slow_path elapsed_ms=" + stopwatch.ElapsedMilliseconds);
+                    }
+
                     uint currentSequence = GetClipboardSequenceNumber();
-                    if (currentSequence == beforeSequence && i < 3)
+                    if (currentSequence == beforeSequence)
                     {
                         continue;
                     }
@@ -1421,7 +1497,7 @@ namespace LXBrowserPicker
                     if (!TryGetClipboardText(out text)) continue;
                     if (!string.IsNullOrWhiteSpace(text)) return true;
                 }
-                LogSelectionFailure("Clipboard stayed empty after Ctrl+C. AfterEscape=" + afterEscape + ", ForegroundProcess=" + GetForegroundProcessName());
+                LogSelectionFailure("Clipboard did not receive fresh text after Ctrl+C. AfterEscape=" + afterEscape + ", TimeoutMs=" + ClipboardSlowCopyTimeoutMilliseconds + ", BeforeSequence=" + beforeSequence + ", ForegroundProcess=" + GetForegroundProcessName());
                 return false;
             }
             catch (Exception ex)
@@ -1433,6 +1509,32 @@ namespace LXBrowserPicker
             {
                 TryRestoreClipboard(original);
             }
+        }
+
+        private static bool IsSelectionTimingEnabled()
+        {
+            try
+            {
+                string value = Environment.GetEnvironmentVariable("LXBP_SELECTION_TIMING");
+                if (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return File.Exists(SelectionTimingFlagPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void LogSelectionTiming(string message)
+        {
+            if (!IsSelectionTimingEnabled()) return;
+            LogSelectionFailure("TIMING " + message);
         }
 
         private static bool TryGetClipboardText(out string text)
@@ -1457,21 +1559,21 @@ namespace LXBrowserPicker
             }
         }
 
-        private static void WaitForModifierKeysReleased(int timeoutMilliseconds)
+        private static void WaitForHotkeyKeysReleased()
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            while (stopwatch.ElapsedMilliseconds < timeoutMilliseconds)
+            while (!AreHotkeyKeysReleased())
             {
-                if (!IsVirtualKeyDown(VirtualKeyControl) &&
-                    !IsVirtualKeyDown(VirtualKeyShift) &&
-                    !IsVirtualKeyDown(VirtualKeyAlt) &&
-                    !IsVirtualKeyDown(VirtualKeyLWin) &&
-                    !IsVirtualKeyDown(VirtualKeyRWin))
-                {
-                    return;
-                }
-                Thread.Sleep(25);
+                Thread.Sleep(ModifierPollIntervalMilliseconds);
             }
+        }
+
+        private static bool AreHotkeyKeysReleased()
+        {
+            if (!AreModifierKeysReleased()) return false;
+
+            Keys key = currentSelectionHotkeyKey & Keys.KeyCode;
+            if (key == Keys.None) return true;
+            return !IsVirtualKeyDown((ushort)key);
         }
 
         private static bool IsVirtualKeyDown(ushort virtualKey)
@@ -1848,7 +1950,7 @@ namespace LXBrowserPicker
         {
             private readonly Action onHotkey;
             private System.Windows.Forms.Timer pendingHotkeyTimer;
-            private Stopwatch pendingHotkeyStopwatch;
+            private bool hotkeyPending;
             private bool registered;
 
             public SelectionHotkeyWindow(Action onHotkey)
@@ -1861,15 +1963,18 @@ namespace LXBrowserPicker
             {
                 Unregister();
                 registered = RegisterHotKey(Handle, SelectionHotkeyId, modifiers, (uint)key);
+                currentSelectionHotkeyKey = registered ? key : Keys.None;
                 return registered;
             }
 
             public void Unregister()
             {
+                CancelPendingHotkey();
                 if (registered)
                 {
                     UnregisterHotKey(Handle, SelectionHotkeyId);
                     registered = false;
+                    currentSelectionHotkeyKey = Keys.None;
                 }
             }
 
@@ -1877,6 +1982,7 @@ namespace LXBrowserPicker
             {
                 if (m.Msg == WmHotkey)
                 {
+                    if (AreHotkeyKeysReleased()) return;
                     ScheduleHotkeyAction();
                     return;
                 }
@@ -1885,37 +1991,36 @@ namespace LXBrowserPicker
 
             private void ScheduleHotkeyAction()
             {
-                if (pendingHotkeyTimer != null)
-                {
-                    pendingHotkeyTimer.Stop();
-                    pendingHotkeyTimer.Dispose();
-                    pendingHotkeyTimer = null;
-                }
+                if (hotkeyPending) return;
 
-                pendingHotkeyStopwatch = Stopwatch.StartNew();
+                hotkeyPending = true;
                 pendingHotkeyTimer = new System.Windows.Forms.Timer();
-                pendingHotkeyTimer.Interval = 25;
+                pendingHotkeyTimer.Interval = ModifierPollIntervalMilliseconds;
                 pendingHotkeyTimer.Tick += delegate
                 {
-                    if (!AreModifierKeysReleased() && pendingHotkeyStopwatch != null && pendingHotkeyStopwatch.ElapsedMilliseconds < 700)
-                    {
-                        return;
-                    }
+                    if (!AreHotkeyKeysReleased()) return;
 
                     System.Windows.Forms.Timer timer = pendingHotkeyTimer;
                     pendingHotkeyTimer = null;
-                    pendingHotkeyStopwatch = null;
                     if (timer != null)
                     {
                         timer.Stop();
                         timer.Dispose();
                     }
-                    if (onHotkey != null) onHotkey();
+
+                    try
+                    {
+                        if (onHotkey != null) onHotkey();
+                    }
+                    finally
+                    {
+                        hotkeyPending = false;
+                    }
                 };
                 pendingHotkeyTimer.Start();
             }
 
-            public void Dispose()
+            private void CancelPendingHotkey()
             {
                 if (pendingHotkeyTimer != null)
                 {
@@ -1923,9 +2028,130 @@ namespace LXBrowserPicker
                     pendingHotkeyTimer.Dispose();
                     pendingHotkeyTimer = null;
                 }
-                pendingHotkeyStopwatch = null;
+                hotkeyPending = false;
+            }
+
+            public void Dispose()
+            {
+                CancelPendingHotkey();
                 Unregister();
                 DestroyHandle();
+            }
+        }
+
+        private class SelectionRecognizingToast : Form
+        {
+            private System.Windows.Forms.Timer closeTimer;
+
+            private SelectionRecognizingToast(string message)
+            {
+                AutoScaleMode = AutoScaleMode.None;
+                StartPosition = FormStartPosition.Manual;
+                FormBorderStyle = FormBorderStyle.None;
+                ShowInTaskbar = false;
+                TopMost = true;
+                Size = new Size(SelectionToastWidth, SelectionToastHeight);
+                BackColor = Color.FromArgb(36, 39, 43);
+                ForeColor = Color.White;
+                Font = new Font(SystemFonts.MessageBoxFont.FontFamily, 11f, FontStyle.Regular);
+
+                Label label = new Label();
+                label.Text = message;
+                label.AutoEllipsis = true;
+                label.TextAlign = ContentAlignment.MiddleCenter;
+                label.Dock = DockStyle.Fill;
+                label.Padding = new Padding(16, 0, 16, 0);
+                label.BackColor = BackColor;
+                label.ForeColor = ForeColor;
+                Controls.Add(label);
+
+                closeTimer = new System.Windows.Forms.Timer();
+                closeTimer.Interval = SelectionToastAutoCloseMilliseconds;
+                closeTimer.Tick += delegate
+                {
+                    CloseToast();
+                };
+            }
+
+            protected override bool ShowWithoutActivation
+            {
+                get { return true; }
+            }
+
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    CreateParams createParams = base.CreateParams;
+                    createParams.ExStyle |= WsExToolWindow | WsExNoActivate;
+                    return createParams;
+                }
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                using (Pen pen = new Pen(Color.FromArgb(80, 255, 255, 255)))
+                {
+                    Rectangle border = ClientRectangle;
+                    border.Width -= 1;
+                    border.Height -= 1;
+                    e.Graphics.DrawRectangle(pen, border);
+                }
+            }
+
+            public static SelectionRecognizingToast ShowNearCursor(string message)
+            {
+                try
+                {
+                    SelectionRecognizingToast toast = new SelectionRecognizingToast(message);
+                    toast.Location = CalculateLocation(Cursor.Position, toast.Size);
+                    toast.Show();
+                    toast.Refresh();
+                    if (toast.closeTimer != null) toast.closeTimer.Start();
+                    return toast;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            public void CloseToast()
+            {
+                try
+                {
+                    if (closeTimer != null)
+                    {
+                        closeTimer.Stop();
+                        closeTimer.Dispose();
+                        closeTimer = null;
+                    }
+                    if (!IsDisposed) Close();
+                }
+                catch
+                {
+                }
+            }
+
+            private static Point CalculateLocation(Point cursor, Size size)
+            {
+                Rectangle area = Screen.FromPoint(cursor).WorkingArea;
+                int x = cursor.X + SelectionToastOffset;
+                int y = cursor.Y + SelectionToastOffset;
+
+                if (x + size.Width > area.Right)
+                {
+                    x = cursor.X - size.Width - SelectionToastOffset;
+                }
+                if (y + size.Height > area.Bottom)
+                {
+                    y = cursor.Y - size.Height - SelectionToastOffset;
+                }
+
+                x = Math.Max(area.Left, Math.Min(x, area.Right - size.Width));
+                y = Math.Max(area.Top, Math.Min(y, area.Bottom - size.Height));
+                return new Point(x, y);
             }
         }
 

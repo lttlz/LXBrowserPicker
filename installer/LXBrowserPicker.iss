@@ -1,5 +1,5 @@
 #define MyAppName "LXBrowserPicker"
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.1.2"
 #define MyAppPublisher "lttlz"
 #define MyAppExeName "LXBrowserPicker.exe"
 #define MyAppURL "https://github.com/lttlz/LXBrowserPicker"
@@ -16,7 +16,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..
-OutputBaseFilename=LXBrowserPickerSetup-v1.1.1
+OutputBaseFilename=LXBrowserPickerSetup-v1.1.2
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

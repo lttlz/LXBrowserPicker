@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.2
+
+- Improved selected-text hotkey responsiveness by removing the pre-action modifier-key wait.
+- Added an immediate non-activating "recognizing link" toast near the cursor when the selected-text hotkey is pressed.
+- Made clipboard fallback use a fast path with a slower fallback wait for complex Chrome/web selections.
+- Fixed stale clipboard reuse when `Ctrl+C` did not produce fresh selected text.
+- Wait until hotkey modifier keys are released before clipboard fallback copying, so `Ctrl+Alt+X` does not turn the fallback copy into `Ctrl+Alt+C`.
+- Wait for the trigger key itself to be released and retry copying without sending `Esc`, improving reliability in Codex/WebView selection UIs.
+- Debounced repeated `WM_HOTKEY` messages so holding the selected-text hotkey only starts one recognition after the key chord is released.
+- Limited UI Automation selection reads to a bounded text length to avoid slow reads on very large selections.
+- Added opt-in selected-text timing diagnostics through `LXBP_SELECTION_TIMING=1` or `%AppData%\LXBrowserPicker\selection-timing.enabled`.
+
 ## 1.1.1
 
 - Fixed truncated About tab QR code labels in English by shortening the WeChat feedback and voluntary support captions.
