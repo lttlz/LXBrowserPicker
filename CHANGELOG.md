@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed the Settings window showing the unapplied-changes prompt even when no settings were changed.
+- Improved selected-text link opening responsiveness by removing a redundant hotkey-release wait before clipboard fallback copying.
+- Reused compiled URL-matching expressions so complex selected text with surrounding content is recognized with less per-action overhead.
+
 ## 1.1.2
 
 - Improved selected-text hotkey responsiveness by removing the pre-action modifier-key wait.

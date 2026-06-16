@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.1.2.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.1.2.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.3.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.3.0")]
 
 namespace LXBrowserPicker
 {
@@ -356,7 +356,7 @@ namespace LXBrowserPicker
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.1.2";
+        private const string AppVersion = "1.1.3";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private const string TrayRunValueName = "LXBrowserPickerTray";
         private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
@@ -385,6 +385,11 @@ namespace LXBrowserPicker
         private const int SelectionToastOffset = 22;
         private const int SelectionToastWidth = 210;
         private const int SelectionToastHeight = 48;
+        private static readonly Regex StandardUrlRegex = new Regex(@"(?i)\b(?:https?://|www\.)[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F\u3001\uFF09\u3011\u300B]+", RegexOptions.CultureInvariant);
+        private static readonly Regex BareDomainRegex = new Regex(@"(?i)(?<![A-Za-z0-9_@.-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?\.)+(?:com\.cn|net\.cn|org\.cn|gov\.cn|edu\.cn|com|cn|net|org|io|ai|app|dev|me|co|info|biz|top|xyz|cc|tv|vip|shop|store|site|online|tech|cloud|edu|gov)(?![A-Za-z0-9_.-])(?:/[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:\?[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:#[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?", RegexOptions.CultureInvariant);
+        private static readonly Regex UrlSchemeRegex = new Regex(@"^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex FileSuffixRegex = new Regex(@"(?i)^(.*\.(?:pdf|docx?|xlsx?|pptx?|zip|rar|7z|exe|msi|dmg|jpg|jpeg|png|gif|webp|txt|csv|xml|json|html?))(?:[A-Za-z0-9-]+\.)+[A-Za-z][A-Za-z0-9-]*(?:/.*)?$", RegexOptions.CultureInvariant);
+        private static readonly Regex UppercaseSuffixRegex = new Regex(@"^(.*\/[^\/?#]*[a-z0-9])([A-Z][A-Z0-9]{3,})([?#].*)?$", RegexOptions.CultureInvariant);
         private const int WsExToolWindow = 0x00000080;
         private const int WsExNoActivate = 0x08000000;
         private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -1465,12 +1470,6 @@ namespace LXBrowserPicker
 
             try
             {
-                Stopwatch modifierStopwatch = Stopwatch.StartNew();
-                WaitForHotkeyKeysReleased();
-                if (modifierStopwatch.ElapsedMilliseconds >= ModifierWaitLogThresholdMilliseconds)
-                {
-                    LogSelectionTiming("clipboard hotkey_release_wait_ms=" + modifierStopwatch.ElapsedMilliseconds);
-                }
                 if (!SendCtrlC())
                 {
                     LogSelectionFailure("SendInput Ctrl+C failed. LastWin32Error=" + Marshal.GetLastWin32Error());
@@ -1699,15 +1698,12 @@ namespace LXBrowserPicker
             if (string.IsNullOrWhiteSpace(text)) return "";
 
             Match best = Match.Empty;
-            Regex standard = new Regex(@"(?i)\b(?:https?://|www\.)[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F\u3001\uFF09\u3011\u300B]+", RegexOptions.CultureInvariant);
-            Match standardMatch = standard.Match(text);
+            Match standardMatch = StandardUrlRegex.Match(text);
             if (standardMatch.Success) best = standardMatch;
 
             if (recognizeBareDomains)
             {
-                string commonBareDomainTlds = @"com\.cn|net\.cn|org\.cn|gov\.cn|edu\.cn|com|cn|net|org|io|ai|app|dev|me|co|info|biz|top|xyz|cc|tv|vip|shop|store|site|online|tech|cloud|edu|gov";
-                Regex bare = new Regex(@"(?i)(?<![A-Za-z0-9_@.-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?\.)+(?:" + commonBareDomainTlds + @")(?![A-Za-z0-9_.-])(?:/[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:\?[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:#[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?", RegexOptions.CultureInvariant);
-                Match bareMatch = bare.Match(text);
+                Match bareMatch = BareDomainRegex.Match(text);
                 if (bareMatch.Success && (!best.Success || bareMatch.Index < best.Index))
                 {
                     best = bareMatch;
@@ -1732,7 +1728,7 @@ namespace LXBrowserPicker
             {
                 return "https://" + url;
             }
-            if (!Regex.IsMatch(url, @"^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase))
+            if (!UrlSchemeRegex.IsMatch(url))
             {
                 return "https://" + url;
             }
@@ -1744,19 +1740,13 @@ namespace LXBrowserPicker
             if (string.IsNullOrWhiteSpace(url)) return "";
 
             // Some apps copy hover labels immediately after the URL with no whitespace.
-            Match fileSuffix = Regex.Match(
-                url,
-                @"(?i)^(.*\.(?:pdf|docx?|xlsx?|pptx?|zip|rar|7z|exe|msi|dmg|jpg|jpeg|png|gif|webp|txt|csv|xml|json|html?))(?:[A-Za-z0-9-]+\.)+[A-Za-z][A-Za-z0-9-]*(?:/.*)?$",
-                RegexOptions.CultureInvariant);
+            Match fileSuffix = FileSuffixRegex.Match(url);
             if (fileSuffix.Success)
             {
                 url = fileSuffix.Groups[1].Value;
             }
 
-            Match uppercaseSuffix = Regex.Match(
-                url,
-                @"^(.*\/[^\/?#]*[a-z0-9])([A-Z][A-Z0-9]{3,})([?#].*)?$",
-                RegexOptions.CultureInvariant);
+            Match uppercaseSuffix = UppercaseSuffixRegex.Match(url);
             if (uppercaseSuffix.Success)
             {
                 url = uppercaseSuffix.Groups[1].Value + uppercaseSuffix.Groups[3].Value;
@@ -2783,8 +2773,40 @@ namespace LXBrowserPicker
 
         private static string SnapshotConfig(PickerConfig config)
         {
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            return serializer.Serialize(config);
+            PickerConfig snapshot = CloneConfig(config);
+            StringBuilder builder = new StringBuilder();
+
+            AppendSnapshotString(builder, snapshot.defaultBrowserPath);
+            builder.Append(snapshot.firstRunScanDone ? "1;" : "0;");
+            builder.Append(snapshot.defaultAppGuideCompleted ? "1;" : "0;");
+            AppendSnapshotString(builder, snapshot.language);
+            builder.Append(snapshot.selectionHotkeyEnabled ? "1;" : "0;");
+            AppendSnapshotString(builder, snapshot.selectionHotkey);
+            builder.Append(snapshot.selectionRecognizeBareDomains ? "1;" : "0;");
+            builder.Append(snapshot.selectionTrayAutoStart ? "1;" : "0;");
+            builder.Append(snapshot.selectionKeepTrayOnSettingsClose ? "1;" : "0;");
+
+            builder.Append(snapshot.manualBrowsers.Count).Append(';');
+            foreach (BrowserEntry browser in snapshot.manualBrowsers)
+            {
+                AppendSnapshotString(builder, browser.name);
+                AppendSnapshotString(builder, browser.path);
+            }
+
+            builder.Append(snapshot.appRules.Count).Append(';');
+            foreach (AppRule rule in snapshot.appRules)
+            {
+                AppendSnapshotString(builder, rule.process);
+                AppendSnapshotString(builder, rule.browserPath);
+            }
+
+            return builder.ToString();
+        }
+
+        private static void AppendSnapshotString(StringBuilder builder, string value)
+        {
+            value = value ?? "";
+            builder.Append(value.Length).Append(':').Append(value).Append(';');
         }
 
         private static PickerConfig CloneConfig(PickerConfig config)
