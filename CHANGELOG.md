@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed the installed application, shortcut, tray, and default-app icons by embedding `assets/LXBrowserPicker.ico` into `LXBrowserPicker.exe`.
+
 ## 1.2.0
 
 - Added a second selected-text hotkey, defaulting to `Ctrl+Alt+C`, that always asks which browser should open the detected link.

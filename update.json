@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0",
-  "releaseUrl": "https://github.com/lttlz/LXBrowserPicker/releases/tag/v1.2.0",
-  "assetName": "LXBrowserPickerSetup-v1.2.0.exe",
-  "sha256": "1125B3014093F3CB049C90FF8B1BB94299A2EFE790D0043E9CC8B45A476ED503",
+  "version": "1.2.1",
+  "releaseUrl": "https://github.com/lttlz/LXBrowserPicker/releases/tag/v1.2.1",
+  "assetName": "LXBrowserPickerSetup-v1.2.1.exe",
+  "sha256": "1776AB8B1766AD09217C576BFD94B899D29C572CFD9C66F84626775CF90BC59B",
   "publishedAt": "2026-06-23",
-  "notes": "Adds a selected-text hotkey that always asks which browser to use, built-in update checks, and default browser protection."
+  "notes": "Fixes missing installed application icons by embedding the LXBrowserPicker icon into the application executable."
 }

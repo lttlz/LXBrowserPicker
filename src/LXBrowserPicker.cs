@@ -19,8 +19,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.2.1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.2.1.0")]
 
 namespace LXBrowserPicker
 {
@@ -471,7 +471,7 @@ namespace LXBrowserPicker
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.2.0";
+        private const string AppVersion = "1.2.1";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private const string TrayRunValueName = "LXBrowserPickerTray";
         private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
