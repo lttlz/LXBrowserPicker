@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Management;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,8 +19,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyProduct("LXBrowserPicker")]
 [assembly: System.Reflection.AssemblyCompany("lttlz")]
-[assembly: System.Reflection.AssemblyVersion("1.1.3.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.1.3.0")]
+[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
 
 namespace LXBrowserPicker
 {
@@ -43,9 +44,14 @@ namespace LXBrowserPicker
         public string language { get; set; }
         public bool selectionHotkeyEnabled { get; set; }
         public string selectionHotkey { get; set; }
+        public string selectionManualHotkey { get; set; }
         public bool selectionRecognizeBareDomains { get; set; }
         public bool selectionTrayAutoStart { get; set; }
         public bool selectionKeepTrayOnSettingsClose { get; set; }
+        public bool updateAutoCheckEnabled { get; set; }
+        public string updateLastCheckDate { get; set; }
+        public bool defaultBrowserGuardEnabled { get; set; }
+        public string defaultBrowserGuardLastPrompt { get; set; }
         public List<BrowserEntry> manualBrowsers { get; set; }
         public List<AppRule> appRules { get; set; }
 
@@ -57,9 +63,14 @@ namespace LXBrowserPicker
             language = "auto";
             selectionHotkeyEnabled = false;
             selectionHotkey = "Ctrl+Alt+X";
+            selectionManualHotkey = "Ctrl+Alt+C";
             selectionRecognizeBareDomains = true;
             selectionTrayAutoStart = false;
             selectionKeepTrayOnSettingsClose = true;
+            updateAutoCheckEnabled = true;
+            updateLastCheckDate = "";
+            defaultBrowserGuardEnabled = true;
+            defaultBrowserGuardLastPrompt = "";
             manualBrowsers = new List<BrowserEntry>();
             appRules = new List<AppRule>();
         }
@@ -94,6 +105,25 @@ namespace LXBrowserPicker
     {
         public PickAction Action;
         public BrowserInfo Browser;
+    }
+
+    internal class UpdateInfo
+    {
+        public string Version;
+        public string ReleaseUrl;
+        public string AssetName;
+        public string Sha256;
+        public string PublishedAt;
+        public string Notes;
+        public string Source;
+    }
+
+    internal class UpdateCheckResult
+    {
+        public bool Success;
+        public bool HasUpdate;
+        public UpdateInfo Info;
+        public string ErrorMessage;
     }
 
     internal static class I18n
@@ -156,15 +186,21 @@ namespace LXBrowserPicker
                     case "GlobalHotkey": return "\u5168\u5C40\u5FEB\u6377\u952E";
                     case "EnableSelectionHotkey": return "\u542F\u7528\u5168\u5C40\u9009\u8BCD\u5FEB\u6377\u952E";
                     case "Hotkey": return "\u5FEB\u6377\u952E\uFF1A";
+                    case "SelectionHotkeys": return "\u9009\u8BCD\u5FEB\u6377\u952E";
+                    case "HotkeyOpenByRules": return "\u6309\u89C4\u5219\u6253\u5F00\u5FEB\u6377\u952E\uFF1A";
+                    case "HotkeyManualPick": return "\u6BCF\u6B21\u624B\u52A8\u9009\u62E9\u5FEB\u6377\u952E\uFF1A";
                     case "RecordHotkey": return "\u5F55\u5236\u5FEB\u6377\u952E";
                     case "HotkeyStatus": return "\u72B6\u6001\uFF1A{0}";
                     case "HotkeyStatusEnabled": return "\u4FDD\u5B58\u540E\u7531\u6258\u76D8\u5E38\u9A7B\u76D1\u542C";
                     case "HotkeyStatusDisabled": return "\u672A\u542F\u7528";
+                    case "HotkeyDuplicate": return "\u4E24\u4E2A\u9009\u8BCD\u5FEB\u6377\u952E\u4E0D\u80FD\u76F8\u540C\u3002";
+                    case "HotkeyInvalid": return "\u5FEB\u6377\u952E\u65E0\u6548\uFF1A{0}";
                     case "LinkRecognition": return "\u94FE\u63A5\u8BC6\u522B";
                     case "RecognizeStandardLinks": return "\u8BC6\u522B http/https/www \u94FE\u63A5";
                     case "RecognizeBareDomains": return "\u8BC6\u522B\u5E38\u89C1\u88F8\u57DF\u540D";
                     case "BareDomainExample": return "\u4F8B\u5982 example.com/path\u3001example.cn";
                     case "SelectionExtraTextHint": return "\u9009\u8BCD\u5141\u8BB8\u6709\u591A\u4F59\u5185\u5BB9\uFF0C\u4F1A\u667A\u80FD\u8BC6\u522B\u5176\u4E2D\u7B2C\u4E00\u4E2A\u94FE\u63A5\u3002";
+                    case "ManualPickHint": return "\u6BCF\u6B21\u624B\u52A8\u9009\u62E9\u4F1A\u8DF3\u8FC7\u89C4\u5219\u548C\u9ED8\u8BA4\u6D4F\u89C8\u5668\u3002";
                     case "NoSearchHint": return "\u975E\u94FE\u63A5\u5185\u5BB9\u4E0D\u4F1A\u641C\u7D22\u3002";
                     case "BackgroundRun": return "\u540E\u53F0\u8FD0\u884C";
                     case "TrayAutoStart": return "\u5F00\u673A\u542F\u52A8\u6258\u76D8\u76D1\u542C";
@@ -191,6 +227,20 @@ namespace LXBrowserPicker
                     case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
                     case "AboutFree": return "\u672C\u8F6F\u4EF6\u5B8C\u5168\u514D\u8D39\u5F00\u653E\u5168\u90E8\u529F\u80FD\uFF0C\u65E0\u4ED8\u8D39\u9650\u5236\u3001\u65E0\u5F3A\u5236\u6253\u8D4F\u3002";
                     case "AboutSupportNote": return "\u82E5\u60A8\u89C9\u5F97\u5DE5\u5177\u5B9E\u7528\uFF0C\u53EF\u81EA\u613F\u5C0F\u989D\u8D5E\u8D4F\u652F\u6301\u540E\u7EED\u7EF4\u62A4\u66F4\u65B0\uFF0C\u652F\u6301\u4E0E\u5426\u4E0D\u5F71\u54CD\u4EFB\u4F55\u4F7F\u7528\u6743\u9650\u3002";
+                    case "Maintenance": return "\u7EF4\u62A4";
+                    case "CheckUpdates": return "\u68C0\u67E5\u66F4\u65B0";
+                    case "AutoCheckUpdates": return "\u81EA\u52A8\u68C0\u67E5\u66F4\u65B0";
+                    case "CheckingUpdates": return "\u6B63\u5728\u68C0\u67E5\u66F4\u65B0...";
+                    case "UpdateLatest": return "\u5F53\u524D\u5DF2\u7ECF\u662F\u6700\u65B0\u7248\u672C\u3002";
+                    case "UpdateAvailable": return "\u53D1\u73B0\u65B0\u7248\u672C {0}\u3002\r\n\u5F53\u524D\u7248\u672C\uFF1A{1}\r\n\u5B89\u88C5\u5305\uFF1A{2}\r\nSHA256\uFF1A{3}\r\n\r\n\u662F\u5426\u6253\u5F00\u4E0B\u8F7D\u9875\u9762\uFF1F";
+                    case "UpdateCheckFailed": return "\u68C0\u67E5\u66F4\u65B0\u5931\u8D25\uFF1A{0}";
+                    case "DefaultBrowserGuard": return "\u9ED8\u8BA4\u6D4F\u89C8\u5668\u4FDD\u62A4";
+                    case "DefaultBrowserStatus": return "\u9ED8\u8BA4\u6D4F\u89C8\u5668\uFF1A{0}";
+                    case "DefaultBrowserOk": return "\u6B63\u5E38";
+                    case "DefaultBrowserChanged": return "\u5DF2\u88AB\u5176\u4ED6\u7A0B\u5E8F\u63A5\u7BA1";
+                    case "DefaultBrowserUnknown": return "\u65E0\u6CD5\u68C0\u6D4B";
+                    case "DefaultBrowserGuardPrompt": return "\u7CFB\u7EDF\u9ED8\u8BA4\u6D4F\u89C8\u5668\u4F3C\u4E4E\u5DF2\u88AB\u6539\u4E3A\u5176\u4ED6\u7A0B\u5E8F\u3002LXBrowserPicker \u5DF2\u5C1D\u8BD5\u6062\u590D\uFF0C\u4F46 Windows \u53EF\u80FD\u8981\u6C42\u4F60\u624B\u52A8\u786E\u8BA4\u3002\r\n\r\n\u662F\u5426\u6253\u5F00\u9ED8\u8BA4\u5E94\u7528\u8BBE\u7F6E\uFF1F";
+                    case "DefaultBrowserGuardTitle": return "\u9ED8\u8BA4\u6D4F\u89C8\u5668\u4FDD\u62A4";
                     case "WechatContact": return "\u5FAE\u4FE1\u53CD\u9988";
                     case "WechatSupport": return "\u81EA\u613F\u8D5E\u8D4F";
                     case "AutoBrowserCannotRemove": return "\u8FD9\u662F\u81EA\u52A8\u626B\u63CF\u5230\u7684\u6D4F\u89C8\u5668\uFF0C\u4E0D\u80FD\u7528\u201C\u79FB\u9664\u624B\u52A8\u6DFB\u52A0\u201D\u5220\u9664\u3002";
@@ -252,15 +302,21 @@ namespace LXBrowserPicker
                 case "GlobalHotkey": return "Global hotkey";
                 case "EnableSelectionHotkey": return "Enable global selected-text hotkey";
                 case "Hotkey": return "Hotkey:";
+                case "SelectionHotkeys": return "Selected-text hotkeys";
+                case "HotkeyOpenByRules": return "Open by rules hotkey:";
+                case "HotkeyManualPick": return "Always choose browser hotkey:";
                 case "RecordHotkey": return "Record Hotkey";
                 case "HotkeyStatus": return "Status: {0}";
                 case "HotkeyStatusEnabled": return "tray listener after saving";
                 case "HotkeyStatusDisabled": return "disabled";
+                case "HotkeyDuplicate": return "The two selected-text hotkeys cannot be the same.";
+                case "HotkeyInvalid": return "Invalid hotkey: {0}";
                 case "LinkRecognition": return "Link recognition";
                 case "RecognizeStandardLinks": return "Recognize http/https/www links";
                 case "RecognizeBareDomains": return "Recognize common bare domains";
                 case "BareDomainExample": return "For example: example.com/path, example.cn";
                 case "SelectionExtraTextHint": return "Selected text may contain extra content; the first link is detected automatically.";
+                case "ManualPickHint": return "Always choose browser skips rules and the default browser.";
                 case "NoSearchHint": return "Non-link text is not searched.";
                 case "BackgroundRun": return "Background running";
                 case "TrayAutoStart": return "Start tray listener when Windows starts";
@@ -287,6 +343,20 @@ namespace LXBrowserPicker
                 case "AboutGithub": return "GitHub: https://github.com/lttlz/LXBrowserPicker";
                 case "AboutFree": return "LXBrowserPicker is completely free and all features are available without paid limits or required donations.";
                 case "AboutSupportNote": return "If you find it useful, you may optionally make a small appreciation donation to support maintenance updates. Supporting it or not does not affect any usage rights.";
+                case "Maintenance": return "Maintenance";
+                case "CheckUpdates": return "Check Updates";
+                case "AutoCheckUpdates": return "Check for updates automatically";
+                case "CheckingUpdates": return "Checking for updates...";
+                case "UpdateLatest": return "You are already using the latest version.";
+                case "UpdateAvailable": return "Version {0} is available.\r\nCurrent version: {1}\r\nInstaller: {2}\r\nSHA256: {3}\r\n\r\nOpen the download page?";
+                case "UpdateCheckFailed": return "Update check failed: {0}";
+                case "DefaultBrowserGuard": return "Default browser protection";
+                case "DefaultBrowserStatus": return "Default browser: {0}";
+                case "DefaultBrowserOk": return "OK";
+                case "DefaultBrowserChanged": return "changed by another app";
+                case "DefaultBrowserUnknown": return "cannot detect";
+                case "DefaultBrowserGuardPrompt": return "The system default browser appears to have changed to another app. LXBrowserPicker tried to restore it, but Windows may require manual confirmation.\r\n\r\nOpen Default Apps settings?";
+                case "DefaultBrowserGuardTitle": return "Default browser protection";
                 case "WechatContact": return "WeChat feedback";
                 case "WechatSupport": return "Voluntary support";
                 case "AutoBrowserCannotRemove": return "This browser was found automatically and cannot be removed with Remove Manual Entry.";
@@ -353,15 +423,64 @@ namespace LXBrowserPicker
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        private static extern uint AssocQueryString(uint flags, uint str, string assoc, string extra, StringBuilder output, ref uint outputLength);
+
+        [DllImport("shell32.dll")]
+        private static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
+
+        [ComImport]
+        [Guid("591209C7-767B-42B2-9FBA-44EE4615F2C7")]
+        private class ApplicationAssociationRegistration
+        {
+        }
+
+        [ComImport]
+        [Guid("4E530B0A-E611-4C77-A3AC-9031D022281B")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IApplicationAssociationRegistration
+        {
+            void QueryCurrentDefault(
+                [MarshalAs(UnmanagedType.LPWStr)] string query,
+                AssociationType queryType,
+                AssociationLevel queryLevel,
+                [MarshalAs(UnmanagedType.LPWStr)] out string association);
+
+            void QueryAppIsDefault(
+                [MarshalAs(UnmanagedType.LPWStr)] string query,
+                AssociationType queryType,
+                AssociationLevel queryLevel,
+                [MarshalAs(UnmanagedType.LPWStr)] string appRegistryName,
+                [MarshalAs(UnmanagedType.Bool)] out bool isDefault);
+
+            void QueryAppIsDefaultAll(
+                AssociationLevel queryLevel,
+                [MarshalAs(UnmanagedType.LPWStr)] string appRegistryName,
+                [MarshalAs(UnmanagedType.Bool)] out bool isDefault);
+
+            void SetAppAsDefault(
+                [MarshalAs(UnmanagedType.LPWStr)] string appRegistryName,
+                [MarshalAs(UnmanagedType.LPWStr)] string set,
+                AssociationType setType);
+
+            void SetAppAsDefaultAll([MarshalAs(UnmanagedType.LPWStr)] string appRegistryName);
+
+            void ClearUserAssociations();
+        }
+
         private const int AttachParentProcess = -1;
         private const string AppName = "LXBrowserPicker";
         private const string AppUserModelId = "lttlz.LXBrowserPicker";
-        private const string AppVersion = "1.1.3";
+        private const string AppVersion = "1.2.0";
         private const string ConfigFileName = "lx-browser-picker.config.json";
         private const string TrayRunValueName = "LXBrowserPickerTray";
         private const string TrayMutexName = "Global\\LXBrowserPicker.SelectionTray";
         private const int SelectionHotkeyId = 0x4c58;
+        private const int SelectionManualHotkeyId = 0x4c59;
         private const int WmHotkey = 0x0312;
+        private const int ShcneAssocChanged = 0x08000000;
+        private const uint ShcnfIdList = 0x0000;
+        private const uint AssocStrExecutable = 2;
         private const uint ModAlt = 0x0001;
         private const uint ModControl = 0x0002;
         private const uint ModShift = 0x0004;
@@ -385,6 +504,14 @@ namespace LXBrowserPicker
         private const int SelectionToastOffset = 22;
         private const int SelectionToastWidth = 210;
         private const int SelectionToastHeight = 48;
+        private const int UpdateCheckTimeoutMilliseconds = 5000;
+        private const string OfficialReleasePrefix = "https://github.com/lttlz/LXBrowserPicker/releases/";
+        private static readonly string[] UpdateMetadataUrls = new string[]
+        {
+            "https://gitee.com/lttlz/lxbrowserpicker-update/raw/master/update.json",
+            "https://api.github.com/repos/lttlz/LXBrowserPicker/releases/latest",
+            "https://cdn.jsdelivr.net/gh/lttlz/LXBrowserPicker@latest/update.json"
+        };
         private static readonly Regex StandardUrlRegex = new Regex(@"(?i)\b(?:https?://|www\.)[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F\u3001\uFF09\u3011\u300B]+", RegexOptions.CultureInvariant);
         private static readonly Regex BareDomainRegex = new Regex(@"(?i)(?<![A-Za-z0-9_@.-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,62}[A-Za-z0-9])?\.)+(?:com\.cn|net\.cn|org\.cn|gov\.cn|edu\.cn|com|cn|net|org|io|ai|app|dev|me|co|info|biz|top|xyz|cc|tv|vip|shop|store|site|online|tech|cloud|edu|gov)(?![A-Za-z0-9_.-])(?:/[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:\?[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?(?:#[^\s<>""\u3002\uFF0C,\uFF1B;\uFF01!\uFF1F?\u3001\uFF09\u3011\u300B]*)?", RegexOptions.CultureInvariant);
         private static readonly Regex UrlSchemeRegex = new Regex(@"^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -401,6 +528,21 @@ namespace LXBrowserPicker
         private static readonly string SelectionTimingFlagPath = Path.Combine(UserConfigDir, "selection-timing.enabled");
         private static Keys currentSelectionHotkeyKey = Keys.None;
         internal static string AppVersionText { get { return AppVersion; } }
+
+        private enum AssociationType
+        {
+            FileExtension = 0,
+            UrlProtocol = 1,
+            StartMenuClient = 2,
+            MimeType = 3
+        }
+
+        private enum AssociationLevel
+        {
+            Machine = 0,
+            Effective = 1,
+            User = 2
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         private struct Input
@@ -528,10 +670,10 @@ namespace LXBrowserPicker
                 return;
             }
 
-            HandleUrl(config, url, GetParentProcessName());
+            HandleUrl(config, url, GetParentProcessName(), false);
         }
 
-        private static void HandleUrl(PickerConfig config, string url, string parentProcess)
+        private static void HandleUrl(PickerConfig config, string url, string parentProcess, bool forceManualPick)
         {
             Stopwatch handleStopwatch = Stopwatch.StartNew();
             List<BrowserInfo> available = FindBrowsers(config);
@@ -543,15 +685,15 @@ namespace LXBrowserPicker
                 return;
             }
 
-            RuleMatch ruleMatch = FindRuleMatch(config, available, parentProcess);
-            if (ruleMatch.Matched && ruleMatch.Browser != null)
+            RuleMatch ruleMatch = forceManualPick ? new RuleMatch { Matched = false, AskEveryTime = true } : FindRuleMatch(config, available, parentProcess);
+            if (!forceManualPick && ruleMatch.Matched && ruleMatch.Browser != null)
             {
                 OpenBrowser(ruleMatch.Browser, url, parentProcess);
                 LogSelectionTiming("handle opened_by_rule total_ms=" + handleStopwatch.ElapsedMilliseconds);
                 return;
             }
 
-            if (!ruleMatch.AskEveryTime)
+            if (!forceManualPick && !ruleMatch.AskEveryTime)
             {
                 BrowserInfo defaultBrowser = FindByPath(available, config.defaultBrowserPath);
                 if (defaultBrowser != null)
@@ -569,11 +711,11 @@ namespace LXBrowserPicker
                 config = LoadConfig();
                 I18n.Configure(config.language);
                 available = FindBrowsers(config);
-            });
+            }, forceManualPick);
 
             if (pick != null && pick.Browser != null)
             {
-                if (pick.Action == PickAction.Always)
+                if (!forceManualPick && pick.Action == PickAction.Always)
                 {
                     SaveAlwaysRule(config, parentProcess, pick.Browser);
                 }
@@ -642,6 +784,9 @@ namespace LXBrowserPicker
             if (config.defaultBrowserPath == null) config.defaultBrowserPath = "";
             if (string.IsNullOrWhiteSpace(config.language)) config.language = "auto";
             if (string.IsNullOrWhiteSpace(config.selectionHotkey)) config.selectionHotkey = "Ctrl+Alt+X";
+            if (string.IsNullOrWhiteSpace(config.selectionManualHotkey)) config.selectionManualHotkey = "Ctrl+Alt+C";
+            if (config.updateLastCheckDate == null) config.updateLastCheckDate = "";
+            if (config.defaultBrowserGuardLastPrompt == null) config.defaultBrowserGuardLastPrompt = "";
             return config;
         }
 
@@ -1234,8 +1379,365 @@ namespace LXBrowserPicker
             {
                 EnsureSelectionTrayRunning();
             }
+            RunDefaultBrowserGuardIfNeeded(config, true);
 
             return true;
+        }
+
+        internal static void RunAutoUpdateCheckIfNeeded(PickerConfig config)
+        {
+            if (config == null || !config.updateAutoCheckEnabled) return;
+
+            string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (string.Equals(config.updateLastCheckDate, today, StringComparison.Ordinal)) return;
+
+            config.updateLastCheckDate = today;
+            SaveConfig(config);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                UpdateCheckResult result = CheckForUpdates();
+                if (result.Success && result.HasUpdate)
+                {
+                    ShowUpdateCheckResult(result, null, false);
+                }
+            });
+        }
+
+        internal static UpdateCheckResult CheckForUpdates()
+        {
+            UpdateCheckResult result = new UpdateCheckResult();
+            StringBuilder errors = new StringBuilder();
+
+            foreach (string url in UpdateMetadataUrls)
+            {
+                try
+                {
+                    UpdateInfo info = LoadUpdateInfo(url);
+                    if (info == null) continue;
+                    if (!IsOfficialReleaseUrl(info.ReleaseUrl))
+                    {
+                        errors.AppendLine(url + ": non-official release URL");
+                        continue;
+                    }
+
+                    result.Success = true;
+                    result.Info = info;
+                    result.HasUpdate = IsNewerVersion(info.Version, AppVersion);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    errors.AppendLine(url + ": " + ex.Message);
+                }
+            }
+
+            result.Success = false;
+            result.ErrorMessage = errors.Length == 0 ? "No update source returned usable metadata." : errors.ToString().Trim();
+            return result;
+        }
+
+        internal static void ShowUpdateCheckResult(UpdateCheckResult result, IWin32Window owner, bool showLatest)
+        {
+            if (result == null || !result.Success)
+            {
+                if (showLatest)
+                {
+                    ShowMessage(owner, string.Format(I18n.T("UpdateCheckFailed"), result == null ? "" : result.ErrorMessage), I18n.T("AppTitle"), MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
+            if (!result.HasUpdate)
+            {
+                if (showLatest)
+                {
+                    ShowMessage(owner, I18n.T("UpdateLatest"), I18n.T("AppTitle"), MessageBoxIcon.Information);
+                }
+                return;
+            }
+
+            UpdateInfo info = result.Info;
+            DialogResult dialogResult = ShowQuestion(
+                owner,
+                string.Format(
+                    I18n.T("UpdateAvailable"),
+                    NullToDash(info.Version),
+                    AppVersion,
+                    NullToDash(info.AssetName),
+                    NullToDash(info.Sha256)),
+                I18n.T("AppTitle"));
+            if (dialogResult == DialogResult.Yes)
+            {
+                OpenUrl(info.ReleaseUrl);
+            }
+        }
+
+        private static UpdateInfo LoadUpdateInfo(string url)
+        {
+            string json;
+            using (TimeoutWebClient client = new TimeoutWebClient(UpdateCheckTimeoutMilliseconds))
+            {
+                client.Encoding = Encoding.UTF8;
+                client.Headers[HttpRequestHeader.UserAgent] = "LXBrowserPicker/" + AppVersion;
+                client.Headers[HttpRequestHeader.Accept] = "application/json";
+                try
+                {
+                    ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | (SecurityProtocolType)3072;
+                }
+                catch
+                {
+                }
+                json = client.DownloadString(url);
+            }
+            return ParseUpdateInfo(json, url);
+        }
+
+        private static UpdateInfo ParseUpdateInfo(string json, string source)
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            Dictionary<string, object> root = serializer.DeserializeObject(json) as Dictionary<string, object>;
+            if (root == null) return null;
+
+            if (root.ContainsKey("tag_name"))
+            {
+                return ParseGitHubReleaseInfo(root, source);
+            }
+
+            UpdateInfo info = new UpdateInfo();
+            info.Version = CleanVersion(GetString(root, "version"));
+            info.ReleaseUrl = GetString(root, "releaseUrl");
+            info.AssetName = GetString(root, "assetName");
+            info.Sha256 = GetString(root, "sha256");
+            info.PublishedAt = GetString(root, "publishedAt");
+            info.Notes = GetString(root, "notes");
+            info.Source = source;
+            if (string.IsNullOrWhiteSpace(info.Version) || string.IsNullOrWhiteSpace(info.ReleaseUrl)) return null;
+            return info;
+        }
+
+        private static UpdateInfo ParseGitHubReleaseInfo(Dictionary<string, object> root, string source)
+        {
+            UpdateInfo info = new UpdateInfo();
+            info.Version = CleanVersion(GetString(root, "tag_name"));
+            info.ReleaseUrl = GetString(root, "html_url");
+            info.PublishedAt = GetString(root, "published_at");
+            info.Notes = GetString(root, "body");
+            info.Source = source;
+
+            object assetsObject;
+            object[] assets = null;
+            if (root.TryGetValue("assets", out assetsObject))
+            {
+                assets = assetsObject as object[];
+            }
+            if (assets != null && assets.Length > 0)
+            {
+                foreach (object assetObject in assets)
+                {
+                    Dictionary<string, object> asset = assetObject as Dictionary<string, object>;
+                    if (asset == null) continue;
+                    string name = GetString(asset, "name");
+                    if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+                    info.AssetName = name;
+                    string digest = GetString(asset, "digest");
+                    if (digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        info.Sha256 = digest.Substring("sha256:".Length).ToUpperInvariant();
+                    }
+                    break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(info.Version) || string.IsNullOrWhiteSpace(info.ReleaseUrl)) return null;
+            return info;
+        }
+
+        private static string GetString(Dictionary<string, object> values, string key)
+        {
+            object value;
+            if (!values.TryGetValue(key, out value) || value == null) return "";
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        private static string CleanVersion(string version)
+        {
+            version = (version ?? "").Trim();
+            return version.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? version.Substring(1) : version;
+        }
+
+        private static bool IsNewerVersion(string candidate, string current)
+        {
+            Version candidateVersion;
+            Version currentVersion;
+            if (!Version.TryParse(CleanVersion(candidate), out candidateVersion)) return false;
+            if (!Version.TryParse(CleanVersion(current), out currentVersion)) return false;
+            return candidateVersion.CompareTo(currentVersion) > 0;
+        }
+
+        private static bool IsOfficialReleaseUrl(string url)
+        {
+            return !string.IsNullOrWhiteSpace(url) &&
+                   url.StartsWith(OfficialReleasePrefix, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NullToDash(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "-" : value;
+        }
+
+        internal static void RunDefaultBrowserGuardIfNeeded(PickerConfig config, bool interactive)
+        {
+            if (config == null || !config.defaultBrowserGuardEnabled) return;
+            DefaultBrowserCheck check = CheckDefaultBrowser();
+            if (check.IsDefault || check.Unknown) return;
+
+            TryRestoreDefaultBrowser();
+            check = CheckDefaultBrowser();
+            if (check.IsDefault) return;
+
+            string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (!interactive && string.Equals(config.defaultBrowserGuardLastPrompt, today, StringComparison.Ordinal)) return;
+
+            config.defaultBrowserGuardLastPrompt = today;
+            SaveConfig(config);
+            DialogResult result = ShowQuestion(null, I18n.T("DefaultBrowserGuardPrompt"), I18n.T("DefaultBrowserGuardTitle"));
+            if (result == DialogResult.Yes)
+            {
+                OpenDefaultAppsSettings();
+            }
+        }
+
+        internal static string GetDefaultBrowserStatusText()
+        {
+            DefaultBrowserCheck check = CheckDefaultBrowser();
+            if (check.Unknown) return string.Format(I18n.T("DefaultBrowserStatus"), I18n.T("DefaultBrowserUnknown"));
+            return string.Format(I18n.T("DefaultBrowserStatus"), check.IsDefault ? I18n.T("DefaultBrowserOk") : I18n.T("DefaultBrowserChanged"));
+        }
+
+        private static DefaultBrowserCheck CheckDefaultBrowser()
+        {
+            string http = QueryAssociatedExecutable("http");
+            string https = QueryAssociatedExecutable("https");
+            bool unknown = string.IsNullOrWhiteSpace(http) || string.IsNullOrWhiteSpace(https);
+            bool isDefault = IsThisExecutable(http) && IsThisExecutable(https);
+            return new DefaultBrowserCheck { HttpExecutable = http, HttpsExecutable = https, Unknown = unknown, IsDefault = isDefault };
+        }
+
+        private static string QueryAssociatedExecutable(string scheme)
+        {
+            try
+            {
+                uint length = 1024;
+                StringBuilder builder = new StringBuilder((int)length);
+                uint result = AssocQueryString(0, AssocStrExecutable, scheme, null, builder, ref length);
+                return result == 0 ? builder.ToString() : "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private static bool IsThisExecutable(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            try
+            {
+                return string.Equals(Path.GetFullPath(path), Path.GetFullPath(Application.ExecutablePath), StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return string.Equals(path, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        private static void TryRestoreDefaultBrowser()
+        {
+            try
+            {
+                IApplicationAssociationRegistration registration = (IApplicationAssociationRegistration)new ApplicationAssociationRegistration();
+                registration.SetAppAsDefault(AppName, "http", AssociationType.UrlProtocol);
+                registration.SetAppAsDefault(AppName, "https", AssociationType.UrlProtocol);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                SHChangeNotify(ShcneAssocChanged, ShcnfIdList, IntPtr.Zero, IntPtr.Zero);
+            }
+            catch
+            {
+            }
+        }
+
+        internal static void OpenDefaultAppsSettings()
+        {
+            OpenUrl("ms-settings:defaultapps");
+        }
+
+        internal static void OpenUrl(string url)
+        {
+            try
+            {
+                ProcessStartInfo info = new ProcessStartInfo();
+                info.FileName = url;
+                info.UseShellExecute = true;
+                Process.Start(info);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void ShowMessage(IWin32Window owner, string message, string title, MessageBoxIcon icon)
+        {
+            if (owner == null)
+            {
+                MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
+            }
+            else
+            {
+                MessageBox.Show(owner, message, title, MessageBoxButtons.OK, icon);
+            }
+        }
+
+        private static DialogResult ShowQuestion(IWin32Window owner, string message, string title)
+        {
+            return owner == null
+                ? MessageBox.Show(message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                : MessageBox.Show(owner, message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        }
+
+        private class DefaultBrowserCheck
+        {
+            public string HttpExecutable;
+            public string HttpsExecutable;
+            public bool Unknown;
+            public bool IsDefault;
+        }
+
+        private class TimeoutWebClient : WebClient
+        {
+            private readonly int timeoutMilliseconds;
+
+            public TimeoutWebClient(int timeoutMilliseconds)
+            {
+                this.timeoutMilliseconds = timeoutMilliseconds;
+            }
+
+            protected override WebRequest GetWebRequest(Uri address)
+            {
+                WebRequest request = base.GetWebRequest(address);
+                request.Timeout = timeoutMilliseconds;
+                HttpWebRequest http = request as HttpWebRequest;
+                if (http != null)
+                {
+                    http.ReadWriteTimeout = timeoutMilliseconds;
+                }
+                return request;
+            }
         }
 
         internal static void ApplySelectionTrayAutoStart(PickerConfig config)
@@ -1287,7 +1789,7 @@ namespace LXBrowserPicker
             }
         }
 
-        private static void OpenSelectedTextUrl(PickerConfig config, NotifyIcon notifyIcon)
+        private static void OpenSelectedTextUrl(PickerConfig config, NotifyIcon notifyIcon, bool forceManualPick)
         {
             Stopwatch totalStopwatch = Stopwatch.StartNew();
             SelectionRecognizingToast toast = SelectionRecognizingToast.ShowNearCursor(I18n.T("SelectionRecognizing"));
@@ -1317,7 +1819,7 @@ namespace LXBrowserPicker
 
                 LogSelectionTiming("open ok total_before_handle_ms=" + totalStopwatch.ElapsedMilliseconds + " foreground_ms=" + foregroundMilliseconds + " read_ms=" + readMilliseconds + " extract_ms=" + extractMilliseconds + " chars=" + selectedText.Length);
                 CloseSelectionToast(ref toast);
-                HandleUrl(config, url, sourceProcess);
+                HandleUrl(config, url, sourceProcess, forceManualPick);
             }
             finally
             {
@@ -1560,7 +2062,7 @@ namespace LXBrowserPicker
 
         private static void WaitForHotkeyKeysReleased()
         {
-            while (!AreHotkeyKeysReleased())
+            while (!AreHotkeyKeysReleased(currentSelectionHotkeyKey))
             {
                 Thread.Sleep(ModifierPollIntervalMilliseconds);
             }
@@ -1568,9 +2070,14 @@ namespace LXBrowserPicker
 
         private static bool AreHotkeyKeysReleased()
         {
+            return AreHotkeyKeysReleased(currentSelectionHotkeyKey);
+        }
+
+        private static bool AreHotkeyKeysReleased(Keys hotkeyKey)
+        {
             if (!AreModifierKeysReleased()) return false;
 
-            Keys key = currentSelectionHotkeyKey & Keys.KeyCode;
+            Keys key = hotkeyKey & Keys.KeyCode;
             if (key == Keys.None) return true;
             return !IsVirtualKeyDown((ushort)key);
         }
@@ -1833,7 +2340,7 @@ namespace LXBrowserPicker
             public SelectionTrayContext(PickerConfig config)
             {
                 this.config = config;
-                hotkeyWindow = new SelectionHotkeyWindow(delegate { OpenSelectedTextUrl(this.config, notifyIcon); });
+                hotkeyWindow = new SelectionHotkeyWindow();
 
                 notifyIcon = new NotifyIcon();
                 notifyIcon.Icon = GetAppIcon();
@@ -1843,6 +2350,8 @@ namespace LXBrowserPicker
                 notifyIcon.DoubleClick += delegate { ShowSettingsFromTray(); };
 
                 RegisterConfiguredHotkey();
+                RunAutoUpdateCheckIfNeeded(this.config);
+                RunDefaultBrowserGuardIfNeeded(this.config, false);
             }
 
             private ContextMenuStrip BuildMenu()
@@ -1902,18 +2411,25 @@ namespace LXBrowserPicker
                 hotkeyWindow.Unregister();
                 if (paused || !config.selectionHotkeyEnabled) return;
 
+                config.selectionHotkey = RegisterOneHotkey(SelectionHotkeyId, config.selectionHotkey, "Ctrl+Alt+X", false);
+                config.selectionManualHotkey = RegisterOneHotkey(SelectionManualHotkeyId, config.selectionManualHotkey, "Ctrl+Alt+C", true);
+            }
+
+            private string RegisterOneHotkey(int id, string hotkeyText, string fallback, bool forceManualPick)
+            {
                 uint modifiers;
                 Keys key;
-                if (!TryParseHotkey(config.selectionHotkey, out modifiers, out key))
+                if (!TryParseHotkey(hotkeyText, out modifiers, out key))
                 {
-                    config.selectionHotkey = "Ctrl+Alt+X";
-                    TryParseHotkey(config.selectionHotkey, out modifiers, out key);
+                    hotkeyText = fallback;
+                    TryParseHotkey(hotkeyText, out modifiers, out key);
                 }
 
-                if (!hotkeyWindow.Register(modifiers, key))
+                if (!hotkeyWindow.Register(id, modifiers, key, delegate { OpenSelectedTextUrl(this.config, notifyIcon, forceManualPick); }))
                 {
-                    notifyIcon.ShowBalloonTip(5000, AppName, string.Format(I18n.T("HotkeyRegisterFailed"), config.selectionHotkey), ToolTipIcon.Warning);
+                    notifyIcon.ShowBalloonTip(5000, AppName, string.Format(I18n.T("HotkeyRegisterFailed"), hotkeyText), ToolTipIcon.Warning);
                 }
+                return hotkeyText;
             }
 
             protected override void Dispose(bool disposing)
@@ -1938,48 +2454,56 @@ namespace LXBrowserPicker
 
         private class SelectionHotkeyWindow : NativeWindow, IDisposable
         {
-            private readonly Action onHotkey;
+            private readonly Dictionary<int, RegisteredHotkey> registeredHotkeys = new Dictionary<int, RegisteredHotkey>();
             private System.Windows.Forms.Timer pendingHotkeyTimer;
             private bool hotkeyPending;
-            private bool registered;
 
-            public SelectionHotkeyWindow(Action onHotkey)
+            private class RegisteredHotkey
             {
-                this.onHotkey = onHotkey;
+                public int Id;
+                public Keys Key;
+                public Action Action;
+            }
+
+            public SelectionHotkeyWindow()
+            {
                 CreateHandle(new CreateParams());
             }
 
-            public bool Register(uint modifiers, Keys key)
+            public bool Register(int id, uint modifiers, Keys key, Action action)
             {
-                Unregister();
-                registered = RegisterHotKey(Handle, SelectionHotkeyId, modifiers, (uint)key);
-                currentSelectionHotkeyKey = registered ? key : Keys.None;
-                return registered;
+                if (!RegisterHotKey(Handle, id, modifiers, (uint)key)) return false;
+                registeredHotkeys[id] = new RegisteredHotkey { Id = id, Key = key, Action = action };
+                currentSelectionHotkeyKey = key;
+                return true;
             }
 
             public void Unregister()
             {
                 CancelPendingHotkey();
-                if (registered)
+                foreach (int id in new List<int>(registeredHotkeys.Keys))
                 {
-                    UnregisterHotKey(Handle, SelectionHotkeyId);
-                    registered = false;
-                    currentSelectionHotkeyKey = Keys.None;
+                    UnregisterHotKey(Handle, id);
                 }
+                registeredHotkeys.Clear();
+                currentSelectionHotkeyKey = Keys.None;
             }
 
             protected override void WndProc(ref Message m)
             {
                 if (m.Msg == WmHotkey)
                 {
-                    if (AreHotkeyKeysReleased()) return;
-                    ScheduleHotkeyAction();
+                    int id = m.WParam.ToInt32();
+                    RegisteredHotkey hotkey;
+                    if (!registeredHotkeys.TryGetValue(id, out hotkey)) return;
+                    if (AreHotkeyKeysReleased(hotkey.Key)) return;
+                    ScheduleHotkeyAction(hotkey);
                     return;
                 }
                 base.WndProc(ref m);
             }
 
-            private void ScheduleHotkeyAction()
+            private void ScheduleHotkeyAction(RegisteredHotkey hotkey)
             {
                 if (hotkeyPending) return;
 
@@ -1988,7 +2512,7 @@ namespace LXBrowserPicker
                 pendingHotkeyTimer.Interval = ModifierPollIntervalMilliseconds;
                 pendingHotkeyTimer.Tick += delegate
                 {
-                    if (!AreHotkeyKeysReleased()) return;
+                    if (!AreHotkeyKeysReleased(hotkey.Key)) return;
 
                     System.Windows.Forms.Timer timer = pendingHotkeyTimer;
                     pendingHotkeyTimer = null;
@@ -2000,7 +2524,7 @@ namespace LXBrowserPicker
 
                     try
                     {
-                        if (onHotkey != null) onHotkey();
+                        if (hotkey.Action != null) hotkey.Action();
                     }
                     finally
                     {
@@ -2318,7 +2842,7 @@ namespace LXBrowserPicker
         private BrowserInfo selectedBrowser;
         private PickAction pickAction = PickAction.Once;
 
-        private PickerForm(List<BrowserInfo> browsers, string url, string parentProcess, Action<Form> settingsAction)
+        private PickerForm(List<BrowserInfo> browsers, string url, string parentProcess, Action<Form> settingsAction, bool singleClickPick)
         {
             Text = I18n.T("AppTitle");
             Icon = Program.GetAppIcon();
@@ -2352,7 +2876,7 @@ namespace LXBrowserPicker
 
             foreach (BrowserInfo browser in browsers)
             {
-                RadioButton option = CreateBrowserOption(browser);
+                RadioButton option = CreateBrowserOption(browser, singleClickPick);
                 browserPanel.Controls.Add(option);
                 if (selectedBrowser == null)
                 {
@@ -2379,18 +2903,23 @@ namespace LXBrowserPicker
             once.Text = I18n.T("Once");
             once.Location = new Point(292, 286);
             once.Size = new Size(74, 28);
+            once.Visible = !singleClickPick;
             once.Click += delegate
             {
                 pickAction = PickAction.Once;
                 DialogResult = DialogResult.OK;
                 Close();
             };
-            AcceptButton = once;
+            if (!singleClickPick)
+            {
+                AcceptButton = once;
+            }
 
             Button always = new Button();
             always.Text = I18n.T("Always");
             always.Location = new Point(376, 286);
             always.Size = new Size(74, 28);
+            always.Visible = !singleClickPick;
             always.Click += delegate
             {
                 pickAction = PickAction.Always;
@@ -2400,7 +2929,7 @@ namespace LXBrowserPicker
 
             Button cancel = new Button();
             cancel.Text = I18n.T("Cancel");
-            cancel.Location = new Point(468, 286);
+            cancel.Location = singleClickPick ? new Point(468, 286) : new Point(468, 286);
             cancel.Size = new Size(74, 28);
             cancel.DialogResult = DialogResult.Cancel;
             CancelButton = cancel;
@@ -2414,7 +2943,7 @@ namespace LXBrowserPicker
             Controls.Add(cancel);
         }
 
-        private RadioButton CreateBrowserOption(BrowserInfo browser)
+        private RadioButton CreateBrowserOption(BrowserInfo browser, bool singleClickPick)
         {
             RadioButton option = new RadioButton();
             option.Appearance = Appearance.Button;
@@ -2435,6 +2964,17 @@ namespace LXBrowserPicker
                     selectedBrowser = option.Tag as BrowserInfo;
                 }
             };
+            if (singleClickPick)
+            {
+                option.Click += delegate
+                {
+                    option.Checked = true;
+                    selectedBrowser = option.Tag as BrowserInfo;
+                    pickAction = PickAction.Once;
+                    DialogResult = DialogResult.OK;
+                    Close();
+                };
+            }
             option.DoubleClick += delegate
             {
                 option.Checked = true;
@@ -2446,11 +2986,11 @@ namespace LXBrowserPicker
             return option;
         }
 
-        internal static PickResult Pick(List<BrowserInfo> browsers, string url, string parentProcess, Action<Form> settingsAction)
+        internal static PickResult Pick(List<BrowserInfo> browsers, string url, string parentProcess, Action<Form> settingsAction, bool singleClickPick)
         {
             while (true)
             {
-                PickerForm form = new PickerForm(browsers, url, parentProcess, settingsAction);
+                PickerForm form = new PickerForm(browsers, url, parentProcess, settingsAction, singleClickPick);
                 DialogResult result = form.ShowDialog();
                 if (result == DialogResult.Retry) continue;
                 if (result != DialogResult.OK) return null;
@@ -2532,10 +3072,15 @@ namespace LXBrowserPicker
         private ComboBox languageCombo;
         private CheckBox enableSelectionHotkey;
         private TextBox selectionHotkeyBox;
+        private TextBox selectionManualHotkeyBox;
         private Label selectionHotkeyStatus;
         private CheckBox recognizeBareDomains;
         private CheckBox trayAutoStart;
         private CheckBox keepTrayOnSettingsClose;
+        private CheckBox autoUpdateCheck;
+        private CheckBox defaultBrowserGuard;
+        private Label defaultBrowserStatus;
+        private Button checkUpdatesButton;
         private bool loadingSelectionControls;
         private PickerConfig appliedConfig;
         private string appliedSnapshot;
@@ -2701,7 +3246,10 @@ namespace LXBrowserPicker
             RefreshBrowsers();
             RefreshRules();
             RefreshSelectionControls();
+            RefreshMaintenanceControls();
             StyleButtons(this);
+            Program.RunAutoUpdateCheckIfNeeded(Config);
+            Program.RunDefaultBrowserGuardIfNeeded(Config, true);
             CaptureAppliedConfigSnapshot();
         }
 
@@ -2741,8 +3289,10 @@ namespace LXBrowserPicker
         private bool ApplyCurrentSettings()
         {
             SyncConfigFromControls();
+            if (!ValidateSelectionHotkeys()) return false;
             if (!Program.ApplySettingsConfig(Config)) return false;
             CaptureAppliedConfigSnapshot();
+            RefreshMaintenanceControls();
             return true;
         }
 
@@ -2756,6 +3306,7 @@ namespace LXBrowserPicker
         {
             Config.language = IndexToLanguage(languageCombo.SelectedIndex);
             SaveSelectionSettingsFromControls();
+            SaveMaintenanceSettingsFromControls();
         }
 
         private void CaptureAppliedConfigSnapshot()
@@ -2782,9 +3333,14 @@ namespace LXBrowserPicker
             AppendSnapshotString(builder, snapshot.language);
             builder.Append(snapshot.selectionHotkeyEnabled ? "1;" : "0;");
             AppendSnapshotString(builder, snapshot.selectionHotkey);
+            AppendSnapshotString(builder, snapshot.selectionManualHotkey);
             builder.Append(snapshot.selectionRecognizeBareDomains ? "1;" : "0;");
             builder.Append(snapshot.selectionTrayAutoStart ? "1;" : "0;");
             builder.Append(snapshot.selectionKeepTrayOnSettingsClose ? "1;" : "0;");
+            builder.Append(snapshot.updateAutoCheckEnabled ? "1;" : "0;");
+            AppendSnapshotString(builder, snapshot.updateLastCheckDate);
+            builder.Append(snapshot.defaultBrowserGuardEnabled ? "1;" : "0;");
+            AppendSnapshotString(builder, snapshot.defaultBrowserGuardLastPrompt);
 
             builder.Append(snapshot.manualBrowsers.Count).Append(';');
             foreach (BrowserEntry browser in snapshot.manualBrowsers)
@@ -2824,9 +3380,14 @@ namespace LXBrowserPicker
             target.language = string.IsNullOrWhiteSpace(source.language) ? "auto" : source.language;
             target.selectionHotkeyEnabled = source.selectionHotkeyEnabled;
             target.selectionHotkey = string.IsNullOrWhiteSpace(source.selectionHotkey) ? "Ctrl+Alt+X" : source.selectionHotkey;
+            target.selectionManualHotkey = string.IsNullOrWhiteSpace(source.selectionManualHotkey) ? "Ctrl+Alt+C" : source.selectionManualHotkey;
             target.selectionRecognizeBareDomains = source.selectionRecognizeBareDomains;
             target.selectionTrayAutoStart = source.selectionTrayAutoStart;
             target.selectionKeepTrayOnSettingsClose = source.selectionKeepTrayOnSettingsClose;
+            target.updateAutoCheckEnabled = source.updateAutoCheckEnabled;
+            target.updateLastCheckDate = source.updateLastCheckDate ?? "";
+            target.defaultBrowserGuardEnabled = source.defaultBrowserGuardEnabled;
+            target.defaultBrowserGuardLastPrompt = source.defaultBrowserGuardLastPrompt ?? "";
 
             target.manualBrowsers = new List<BrowserEntry>();
             if (source.manualBrowsers != null)
@@ -2872,9 +3433,9 @@ namespace LXBrowserPicker
             subtitle.Size = new Size(720, 20);
 
             GroupBox hotkeyGroup = new GroupBox();
-            hotkeyGroup.Text = I18n.T("GlobalHotkey");
+            hotkeyGroup.Text = I18n.T("SelectionHotkeys");
             hotkeyGroup.Location = new Point(18, 74);
-            hotkeyGroup.Size = new Size(350, 150);
+            hotkeyGroup.Size = new Size(350, 170);
 
             enableSelectionHotkey = new CheckBox();
             enableSelectionHotkey.Text = I18n.T("EnableSelectionHotkey");
@@ -2891,19 +3452,19 @@ namespace LXBrowserPicker
             };
 
             Label hotkeyLabel = new Label();
-            hotkeyLabel.Text = I18n.T("Hotkey");
+            hotkeyLabel.Text = I18n.T("HotkeyOpenByRules");
             hotkeyLabel.Location = new Point(14, 62);
-            hotkeyLabel.Size = new Size(74, 22);
+            hotkeyLabel.Size = new Size(132, 22);
 
             selectionHotkeyBox = new TextBox();
-            selectionHotkeyBox.Location = new Point(92, 58);
-            selectionHotkeyBox.Size = new Size(120, 24);
+            selectionHotkeyBox.Location = new Point(150, 58);
+            selectionHotkeyBox.Size = new Size(94, 24);
             selectionHotkeyBox.ReadOnly = true;
 
             Button recordHotkey = new Button();
             recordHotkey.Text = I18n.T("RecordHotkey");
-            recordHotkey.Location = new Point(222, 56);
-            recordHotkey.Size = new Size(104, 28);
+            recordHotkey.Location = new Point(252, 56);
+            recordHotkey.Size = new Size(78, 28);
             recordHotkey.Click += delegate
             {
                 string hotkey = HotkeyCaptureForm.CaptureHotkey(this, Config.selectionHotkey);
@@ -2914,14 +3475,41 @@ namespace LXBrowserPicker
                 }
             };
 
+            Label manualHotkeyLabel = new Label();
+            manualHotkeyLabel.Text = I18n.T("HotkeyManualPick");
+            manualHotkeyLabel.Location = new Point(14, 94);
+            manualHotkeyLabel.Size = new Size(132, 22);
+
+            selectionManualHotkeyBox = new TextBox();
+            selectionManualHotkeyBox.Location = new Point(150, 90);
+            selectionManualHotkeyBox.Size = new Size(94, 24);
+            selectionManualHotkeyBox.ReadOnly = true;
+
+            Button recordManualHotkey = new Button();
+            recordManualHotkey.Text = I18n.T("RecordHotkey");
+            recordManualHotkey.Location = new Point(252, 88);
+            recordManualHotkey.Size = new Size(78, 28);
+            recordManualHotkey.Click += delegate
+            {
+                string hotkey = HotkeyCaptureForm.CaptureHotkey(this, Config.selectionManualHotkey);
+                if (!string.IsNullOrWhiteSpace(hotkey))
+                {
+                    Config.selectionManualHotkey = hotkey;
+                    selectionManualHotkeyBox.Text = hotkey;
+                }
+            };
+
             selectionHotkeyStatus = new Label();
-            selectionHotkeyStatus.Location = new Point(14, 104);
+            selectionHotkeyStatus.Location = new Point(14, 126);
             selectionHotkeyStatus.Size = new Size(312, 22);
 
             hotkeyGroup.Controls.Add(enableSelectionHotkey);
             hotkeyGroup.Controls.Add(hotkeyLabel);
             hotkeyGroup.Controls.Add(selectionHotkeyBox);
             hotkeyGroup.Controls.Add(recordHotkey);
+            hotkeyGroup.Controls.Add(manualHotkeyLabel);
+            hotkeyGroup.Controls.Add(selectionManualHotkeyBox);
+            hotkeyGroup.Controls.Add(recordManualHotkey);
             hotkeyGroup.Controls.Add(selectionHotkeyStatus);
 
             GroupBox recognitionGroup = new GroupBox();
@@ -3016,6 +3604,7 @@ namespace LXBrowserPicker
             loadingSelectionControls = true;
             enableSelectionHotkey.Checked = Config.selectionHotkeyEnabled;
             selectionHotkeyBox.Text = string.IsNullOrWhiteSpace(Config.selectionHotkey) ? "Ctrl+Alt+X" : Config.selectionHotkey;
+            selectionManualHotkeyBox.Text = string.IsNullOrWhiteSpace(Config.selectionManualHotkey) ? "Ctrl+Alt+C" : Config.selectionManualHotkey;
             recognizeBareDomains.Checked = Config.selectionRecognizeBareDomains;
             trayAutoStart.Checked = Config.selectionTrayAutoStart;
             keepTrayOnSettingsClose.Checked = Config.selectionKeepTrayOnSettingsClose;
@@ -3028,6 +3617,7 @@ namespace LXBrowserPicker
         {
             bool enabled = enableSelectionHotkey.Checked;
             selectionHotkeyBox.Enabled = enabled;
+            selectionManualHotkeyBox.Enabled = enabled;
             recognizeBareDomains.Enabled = enabled;
             trayAutoStart.Enabled = enabled;
             keepTrayOnSettingsClose.Enabled = enabled;
@@ -3038,9 +3628,38 @@ namespace LXBrowserPicker
         {
             Config.selectionHotkeyEnabled = enableSelectionHotkey.Checked;
             Config.selectionHotkey = string.IsNullOrWhiteSpace(selectionHotkeyBox.Text) ? "Ctrl+Alt+X" : selectionHotkeyBox.Text;
+            Config.selectionManualHotkey = string.IsNullOrWhiteSpace(selectionManualHotkeyBox.Text) ? "Ctrl+Alt+C" : selectionManualHotkeyBox.Text;
             Config.selectionRecognizeBareDomains = recognizeBareDomains.Checked;
             Config.selectionTrayAutoStart = trayAutoStart.Checked;
             Config.selectionKeepTrayOnSettingsClose = keepTrayOnSettingsClose.Checked;
+        }
+
+        private bool ValidateSelectionHotkeys()
+        {
+            if (!Config.selectionHotkeyEnabled) return true;
+
+            uint modifiers;
+            Keys key;
+            if (!Program.TryParseHotkey(Config.selectionHotkey, out modifiers, out key))
+            {
+                MessageBox.Show(string.Format(I18n.T("HotkeyInvalid"), Config.selectionHotkey), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            uint manualModifiers;
+            Keys manualKey;
+            if (!Program.TryParseHotkey(Config.selectionManualHotkey, out manualModifiers, out manualKey))
+            {
+                MessageBox.Show(string.Format(I18n.T("HotkeyInvalid"), Config.selectionManualHotkey), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (modifiers == manualModifiers && key == manualKey)
+            {
+                MessageBox.Show(I18n.T("HotkeyDuplicate"), Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
         }
 
         private GroupBox CreateAboutGroup()
@@ -3079,7 +3698,99 @@ namespace LXBrowserPicker
             group.Controls.Add(github);
             group.Controls.Add(author);
             group.Controls.Add(supportNote);
+            group.Controls.Add(CreateMaintenanceGroup());
             return group;
+        }
+
+        private GroupBox CreateMaintenanceGroup()
+        {
+            GroupBox group = new GroupBox();
+            group.Text = I18n.T("Maintenance");
+            group.Location = new Point(470, 178);
+            group.Size = new Size(250, 205);
+
+            checkUpdatesButton = new Button();
+            checkUpdatesButton.Text = I18n.T("CheckUpdates");
+            checkUpdatesButton.Location = new Point(14, 26);
+            checkUpdatesButton.Size = new Size(104, 28);
+            checkUpdatesButton.Click += delegate { RunManualUpdateCheck(); };
+
+            autoUpdateCheck = new CheckBox();
+            autoUpdateCheck.Text = I18n.T("AutoCheckUpdates");
+            autoUpdateCheck.Location = new Point(14, 62);
+            autoUpdateCheck.Size = new Size(218, 24);
+
+            defaultBrowserGuard = new CheckBox();
+            defaultBrowserGuard.Text = I18n.T("DefaultBrowserGuard");
+            defaultBrowserGuard.Location = new Point(14, 92);
+            defaultBrowserGuard.Size = new Size(218, 24);
+
+            defaultBrowserStatus = new Label();
+            defaultBrowserStatus.Location = new Point(14, 124);
+            defaultBrowserStatus.Size = new Size(218, 34);
+
+            Button openDefaultApps = new Button();
+            openDefaultApps.Text = I18n.T("OpenDefaultApps");
+            openDefaultApps.Location = new Point(14, 164);
+            openDefaultApps.Size = new Size(150, 28);
+            openDefaultApps.Click += delegate
+            {
+                Program.OpenDefaultAppsSettings();
+                RefreshDefaultBrowserStatus();
+            };
+
+            group.Controls.Add(checkUpdatesButton);
+            group.Controls.Add(autoUpdateCheck);
+            group.Controls.Add(defaultBrowserGuard);
+            group.Controls.Add(defaultBrowserStatus);
+            group.Controls.Add(openDefaultApps);
+            return group;
+        }
+
+        private void RefreshMaintenanceControls()
+        {
+            if (autoUpdateCheck == null) return;
+            autoUpdateCheck.Checked = Config.updateAutoCheckEnabled;
+            defaultBrowserGuard.Checked = Config.defaultBrowserGuardEnabled;
+            RefreshDefaultBrowserStatus();
+        }
+
+        private void SaveMaintenanceSettingsFromControls()
+        {
+            if (autoUpdateCheck == null) return;
+            Config.updateAutoCheckEnabled = autoUpdateCheck.Checked;
+            Config.defaultBrowserGuardEnabled = defaultBrowserGuard.Checked;
+        }
+
+        private void RefreshDefaultBrowserStatus()
+        {
+            if (defaultBrowserStatus == null) return;
+            defaultBrowserStatus.Text = Program.GetDefaultBrowserStatusText();
+        }
+
+        private void RunManualUpdateCheck()
+        {
+            if (checkUpdatesButton == null) return;
+            checkUpdatesButton.Enabled = false;
+            checkUpdatesButton.Text = I18n.T("CheckingUpdates");
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                UpdateCheckResult result = Program.CheckForUpdates();
+                try
+                {
+                    if (IsDisposed) return;
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        checkUpdatesButton.Text = I18n.T("CheckUpdates");
+                        checkUpdatesButton.Enabled = true;
+                        Program.ShowUpdateCheckResult(result, this, true);
+                    });
+                }
+                catch
+                {
+                }
+            });
         }
 
         private void StyleButtons(Control parent)

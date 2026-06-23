@@ -5,9 +5,14 @@
   "language": "auto",
   "selectionHotkeyEnabled": false,
   "selectionHotkey": "Ctrl+Alt+X",
+  "selectionManualHotkey": "Ctrl+Alt+C",
   "selectionRecognizeBareDomains": true,
   "selectionTrayAutoStart": false,
   "selectionKeepTrayOnSettingsClose": true,
+  "updateAutoCheckEnabled": true,
+  "updateLastCheckDate": "",
+  "defaultBrowserGuardEnabled": true,
+  "defaultBrowserGuardLastPrompt": "",
   "manualBrowsers": [],
   "appRules": []
 }

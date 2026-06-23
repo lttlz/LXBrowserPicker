@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Added a second selected-text hotkey, defaulting to `Ctrl+Alt+C`, that always asks which browser should open the detected link.
+- Made the manual selected-text picker open links with a single browser-logo click and avoid saving "Always" rules from that path.
+- Added built-in update checks with Gitee, GitHub Releases, and jsDelivr metadata sources.
+- Added default browser protection that detects when `http` / `https` are no longer routed to LXBrowserPicker and guides the user back to Windows Default Apps when automatic recovery is not allowed.
+
 ## 1.1.3
 
 - Fixed the Settings window showing the unapplied-changes prompt even when no settings were changed.
