@@ -57,3 +57,11 @@ LX浏览器选择器不会自动删除旧的 `CodexBrowserPicker` 注册表项�
 ## 支持
 
 LX浏览器选择器免费使用。可选支持信息位于“关于”标签页。支持完全自愿，不解锁付费功能、使用限制、订阅或优先服务。
+
+## 许可证
+
+LXBrowserPicker 采用 [Apache License 2.0，并附加 Commons Clause License Condition v1.0](LICENSE)。
+
+依据许可证条款，允许个人和企业免费使用、修改及免费分发。
+
+未经许可，不得直接销售 LXBrowserPicker，也不得通过改名、换图标、轻微修改或重新打包，将本软件或实质相同的软件作为收费产品或服务出售。商业销售或再授权需另行取得授权人的书面许可。
