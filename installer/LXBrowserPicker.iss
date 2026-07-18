@@ -21,6 +21,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\assets\LXBrowserPicker.ico
+LicenseFile=..\LICENSE
 PrivilegesRequired=admin
 ChangesAssociations=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -43,6 +44,8 @@ Source: "..\lx-browser-picker.config.example.json"; DestDir: "{app}"; Flags: ign
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.zh-CN.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 #ifexist "..\assets\about\wechat-contact.png"
 Source: "..\assets\about\wechat-contact.png"; DestDir: "{app}\assets\about"; Flags: ignoreversion
 #endif
