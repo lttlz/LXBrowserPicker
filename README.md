@@ -57,3 +57,11 @@ LXBrowserPicker does not automatically remove old `CodexBrowserPicker` registry 
 ## Support
 
 LXBrowserPicker is free to use. Optional support information is available in the About tab. Support is voluntary and does not unlock paid features, limits, subscriptions, or priority service.
+
+## License
+
+LXBrowserPicker is source-available under the [Apache License 2.0 with the Commons Clause License Condition v1.0](LICENSE).
+
+Free personal and business use, modification, and free redistribution are permitted under the license terms.
+
+Selling LXBrowserPicker itself, or a substantially equivalent renamed, rebranded, lightly modified, or repackaged product or service, requires separate written authorization from the licensor.
